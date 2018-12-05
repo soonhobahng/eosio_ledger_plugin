@@ -1,0 +1,326 @@
+/**
+ *  @file
+ *  @copyright defined in eos/LICENSE.txt
+ */
+#include <eosio/ledger_plugin/ledger_plugin.hpp>
+
+namespace eosio {
+   static appbase::abstract_plugin& _ledger_plugin = app().register_plugin<ledger_plugin>();
+
+class ledger_plugin_impl {
+   public:
+      ledger_plugin();
+      ~ledger_plugin();
+
+      fc::optional<boost::signals2::scoped_connection> applied_transaction_connection;
+      
+      void consume_query_process();
+
+      void applied_transaction(const chain::transaction_trace_ptr&);
+      void process_applied_transaction(const chain::transaction_trace_ptr);
+
+      void process_add_ledger( const chain::action_trace& atrace );
+
+      void init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
+         const uint16_t port, const uint16_t max_conn, uint32_t block_num_start, const variables_map& options);
+      void wipe_database();
+
+      template<typename Queue, typename Entry> void queue(Queue& queue, const Entry& e);
+
+      bool configured{false};
+      bool wipe_database_on_startup{false};
+      uint32_t start_block_num = 0;
+      uint32_t end_block_num = 0;
+      bool start_block_reached = false;
+      bool is_producer = false;
+
+      boost::mutex mtx;
+      boost::condition_variable condition;
+      std::vector<boost::thread> consume_query_threads;
+
+      boost::atomic<bool> done{false};
+      boost::atomic<bool> startup{true};
+      fc::optional<chain::chain_id_type> chain_id;
+      fc::microseconds abi_serializer_max_time;
+
+      /**
+       * database connection
+       */
+      std::shared_ptr<dbconn> m_connection_pool;
+      std::shared_ptr<ledger_table> m_ledger_table;
+
+};
+
+template<typename Queue, typename Entry>
+void ledger_plugin_impl::queue( Queue& queue, const Entry& e ) {
+   boost::mutex::scoped_lock lock( mtx );
+   auto queue_size = queue.size();
+   if( queue_size > max_queue_size ) {
+      lock.unlock();
+      condition.notify_one();
+      queue_sleep_time += 10;
+      if( queue_sleep_time > 1000 )
+         wlog("queue size: ${q}", ("q", queue_size));
+      boost::this_thread::sleep_for( boost::chrono::milliseconds( queue_sleep_time ));
+      lock.lock();
+   } else {
+      queue_sleep_time -= 10;
+      if( queue_sleep_time < 0 ) queue_sleep_time = 0;
+   }
+   queue.emplace_back( e );
+   lock.unlock();
+   condition.notify_one();
+}
+
+void ledger_plugin_impl::applied_transaction( const chain::transaction_trace_ptr& t ) {
+   try {
+      if( !start_block_reached ) {
+         if( t->block_num >= start_block_num ) {
+            start_block_reached = true;
+         }
+      }
+
+      if(t->block_num > 0 && start_block_reached){
+         process_applied_transaction(t); 
+      }
+   } catch (fc::exception& e) {
+      elog("FC Exception while applied_transaction ${e}", ("e", e.to_string()));
+   } catch (std::exception& e) {
+      elog("STD Exception while applied_transaction ${e}", ("e", e.what()));
+   } catch (...) {
+      elog("Unknown exception while applied_transaction");
+   }
+}
+
+void ledger_plugin_impl::consume_query_process() {
+   try {
+      while (true) {
+         boost::mutex::scoped_lock lock(mtx);
+         while ( query_queue.empty() && !done ) {
+            condition.wait(lock);
+         }
+         
+         size_t query_queue_count = query_queue.size(); 
+         std::string query_str = "";
+         if (query_queue_count > 0) {
+            query_str = query_queue.front(); 
+            query_queue.pop_front(); 
+         }
+
+         lock.unlock();
+
+         if (query_queue_count > 0) {
+            mysqx_session_t* sess = m_commection_pool->get_connection();
+            try{
+               session.sql(query_str).execute();
+
+               m_connection_pool->release_connection(sess);
+            } catch (...) {
+               m_connection_pool->release_connection(sess);
+            }
+         }
+      
+         if( query_queue_count == 0 && done ) {
+            break;
+         }      
+      }
+
+      ilog("ledger_plugin consume query process thread shutdown gracefully");
+   } catch (...) {
+      elog("Unknown exception while consuming query");
+   }
+
+}
+
+void ledger_plugin_impl::process_add_action_trace( const chain::action_trace& atrace ) {
+
+   const auto block_number = atrace.block_num;
+   if(block_number == 0) return;
+
+   const auto action_id = atrace.receipt.global_sequence ; 
+   const auto trx_id    = atrace.trx_id;
+
+   m_ledger_table->add_ledger(action_id, block_number, trx_id, atrace.receipt.receiver.to_string(), atrace.act);
+   
+   for( const auto& iline_atrace : atrace.inline_traces ) {
+      process_add_action_trace( action_id, iline_atrace, act_num );
+   }
+}
+
+void ledger_plugin_impl::process_applied_transaction(const chain::transaction_trace_ptr& t) {
+   auto start_time = fc::time_point::now();
+
+   for( const auto& atrace : t->action_traces ) {
+      try {
+         process_add_action_trace( 0, atrace, act_num );
+      } catch(...) {
+         wlog("add action traces failed.");
+      }
+   }   
+
+   auto time = fc::time_point::now() - start_time;
+   if( time > fc::microseconds(500000) )
+      ilog( "process actions, trans_id: ${r}    time: ${t}", ("r",t->id.str())("t", time) );
+}
+
+ledger_plugin::ledger_plugin():my(new ledger_plugin_impl()){}
+ledger_plugin::~ledger_plugin(){}
+
+void ledger_plugin_impl::wipe_database() {
+   ilog("wipe tables");
+
+   // drop tables
+   m_actions_table->drop();   
+   m_actions_table->create(); 
+
+   m_accounts_table->add(system_account);
+
+   ilog("create tables done");
+}
+
+void ledger_plugin_impl::init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
+      const uint16_t port, const uint16_t max_conn, uint32_t block_num_start, const variables_map& options) 
+{
+   m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn);
+
+   {
+      uint32_t ledger_ag_count = 1; 
+      if( options.count( "ledger-db-ag" )) {
+            account_ag_count = options.at("ledger-db-ag").as<uint32_t>();
+      }
+      ilog("Aggregate account: ${n}", ("n", ledger_ag_count));
+      m_accounts_table = std::make_unique<accounts_table>(m_connection_pool, ledger_ag_count);
+   }
+
+   {
+      uint32_t action_raw_ag_count = 10;
+      uint32_t action_acc_ag_count = 12;
+      if( options.count( "ledger-db-ag-action-raw" )) {
+            action_raw_ag_count = options.at("ledger-db-ag-action-raw").as<uint32_t>();
+      }
+      if( options.count( "ledger-db-ag-action-acc" )) {
+            action_acc_ag_count = options.at("ledger-db-ag-action-acc").as<uint32_t>();
+      }
+      ilog("Aggregate action raw: ${n}", ("n", action_raw_ag_count));
+      ilog("Aggregate action acc: ${n}", ("n", action_acc_ag_count));
+      m_actions_table = std::make_unique<actions_table>(m_connection_pool, action_raw_ag_count, action_acc_ag_count);
+
+   }
+
+   {
+      uint32_t block_ag_count = 5;
+      if( options.count( "ledger-db-ag-block" )) {
+            block_ag_count = options.at("ledger-db-ag-block").as<uint32_t>();
+      }
+      ilog("Aggregate block: ${n}", ("n", block_ag_count));
+      m_blocks_table = std::make_unique<blocks_table>(m_connection_pool, block_ag_count);
+   }
+
+   {
+      uint32_t trace_ag_count = 10;
+      uint32_t transaction_ag_count = 10;
+      if( options.count( "ledger-db-ag-trace" )) {
+            trace_ag_count = options.at("ledger-db-ag-trace").as<uint32_t>();
+      }
+      if( options.count( "ledger-db-ag-transaction" )) {
+            transaction_ag_count = options.at("ledger-db-ag-transaction").as<uint32_t>();
+      }
+      ilog("Aggregate trace: ${n}", ("n", trace_ag_count));
+      ilog("Aggregate transaction: ${n}", ("n", transaction_ag_count));
+      m_transactions_table = std::make_unique<transactions_table>(m_connection_pool, trace_ag_count, transaction_ag_count);
+   }
+   
+   m_block_num_start = block_num_start;
+   system_account = chain::name(chain::config::system_account_name).to_string();
+
+   if( wipe_database_on_startup ) {
+      wipe_database();
+   } 
+   // else {
+   //    ilog("create tables");
+      
+   //    // create Tables
+   //    m_accounts_table->create();
+   //    m_blocks_table->create();
+   //    m_transactions_table->create();
+   //    m_actions_table->create();
+
+   //    m_accounts_table->create_index();
+   //    m_blocks_table->create_index();
+   //    m_transactions_table->create_index();
+   //    m_actions_table->create_index();
+   // }
+
+/*
+   // get last action_id from actions table
+   if( start_action_idx > 0 ) {
+      m_action_id = start_action_idx;
+   } else {
+      //m_action_id = m_actions_table->get_max_id_raw() + 1;
+      m_action_id = m_actions_table->get_max_id() + 1;
+   }
+*/
+
+   ilog("starting ledger plugin thread");
+
+   for (size_t i=0; i<query_thread_count; i++) {
+      consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
+   }
+
+   
+   startup = false;
+}
+
+void ledger_plugin::set_program_options(options_description&, options_description& cfg) {
+   cfg.add_options()
+         ("ledger-queue-size", bpo::value<uint32_t>()->default_value(100000),
+         "Query queue size.")
+         ("ledger-db-query-thread", bpo::value<uint32_t>()->default_value(4),
+         "Query work thread count.")
+         ("ledger-data-wipe", bpo::bool_switch()->default_value(false),
+         "Required with --replay-blockchain, --hard-replay-blockchain, or --delete-all-blocks to wipe ledger table."
+         "This option required to prevent accidental wipe of ledger db.")
+         ("ledger-db-host", bpo::value<std::string>(),
+         "ledger DB host address string")
+         ("ledger-db-port", bpo::value<uint16_t>()->default_value(3306),
+         "ledger DB port integer")
+         ("ledger-db-user", bpo::value<std::string>(),
+         "ledger DB user id string")
+         ("ledger-db-passwd", bpo::value<std::string>(),
+         "ledger DB user password string")
+         ("ledger-db-database", bpo::value<std::string>(),
+         "ledger DB database name string")
+         ("ledger-db-max-connection", bpo::value<uint16_t>()->default_value(5),
+         "ledger DB max connection. " 
+         "Should be one or more larger then ledger-db-query-thread value.")
+         ("ledger-db-block-start", bpo::value<uint32_t>()->default_value(0),
+         "If specified then only abi data pushed to ledger db until specified block is reached.")
+         ("ledger-db-block-end", bpo::value<uint32_t>()->default_value(0),
+         "stop when reached end block number.")
+         
+         // bulk aggregation count
+         ("ledger-db-ag", bpo::value<uint32_t>(),
+         "ledger db aggregation count")
+         ;
+}
+
+void ledger_plugin::plugin_initialize(const variables_map& options) {
+   try {
+      if( options.count( "option-name" )) {
+         // Handle the option
+      }
+   }
+   FC_LOG_AND_RETHROW()
+}
+
+void ledger_plugin::plugin_startup() {
+   // Make the magic happen
+}
+
+void ledger_plugin::plugin_shutdown() {
+   // OK, that's enough magic
+   my->applied_transaction_connection.reset();
+   my.reset();
+}
+
+}
