@@ -24,8 +24,24 @@
 
 #include <future>
 
+#include "ledger_table.hpp"
+
+namespace fc { class variant; }
+
 namespace eosio {
+   using chain::account_name;
+   using chain::action_name;
+   using chain::block_id_type;
+   using chain::permission_name;
+   using chain::transaction;
+   using chain::signed_transaction;
+   using chain::signed_block;
+   using chain::transaction_id_type;
+   using chain::packed_transaction;
+
+   int queue_sleep_time = 0;
    static appbase::abstract_plugin& _ledger_plugin = app().register_plugin<ledger_plugin>();
+
 
 class ledger_plugin_impl {
    public:
