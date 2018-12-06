@@ -89,7 +89,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     std::ostringstream raw_bulk_sql_add;
                     std::ostringstream raw_bulk_sql_sub;
 
-                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (account, amount, symbol) VALUES ('%1%', '%2%', '%3%') ON DUPLICATE KEY UPDATE SET amount = amount + %2% ;")
+                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (account, amount, symbol) VALUES ('%1%', '%2%', '%3%') ON DUPLICATE KEY UPDATE amount = amount + %2% ;")
                     % to_name
                     % asset_qty
                     % symbol;
