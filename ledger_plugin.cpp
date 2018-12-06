@@ -210,6 +210,36 @@ void ledger_plugin_impl::process_applied_transaction(const chain::transaction_tr
       ilog( "process actions, trans_id: ${r}    time: ${t}", ("r",t->id.str())("t", time) );
 }
 
+ledger_plugin_impl::ledger_plugin_impl()
+{
+    static_mysql_db_plugin_impl = this; 
+    ilog("ledger_plugin_impl");
+}
+
+ledger_plugin_impl::~ledger_plugin_impl() {
+   if (!startup) {
+      try {
+         m_ledger_table->finalize(); 
+
+         ilog( "shutdown in process please be patient this can take a few minutes" );
+         done = true;
+
+         for (size_t i=0; i< consume_query_threads.size(); i++ ) {
+            condition.notify_one();
+         }
+
+         for (size_t i=0; i< consume_query_threads.size(); i++ ) {
+            consume_query_threads[i].join(); 
+         }
+
+      } catch( std::exception& e ) {
+         elog( "Exception on mysql_db_plugin shutdown of consume thread: ${e}", ("e", e.what()));
+      }
+   }
+
+   static_ledger_plugin_impl = nullptr; 
+}
+
 ledger_plugin::ledger_plugin():my(new ledger_plugin_impl()){}
 ledger_plugin::~ledger_plugin(){}
 
