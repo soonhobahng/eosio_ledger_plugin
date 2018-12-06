@@ -306,11 +306,94 @@ void ledger_plugin::set_program_options(options_description&, options_descriptio
 
 void ledger_plugin::plugin_initialize(const variables_map& options) {
    try {
-      if( options.count( "option-name" )) {
-         // Handle the option
+      if( options.count( "ledger-db-host" )) {
+         ilog( "initializing ledge_plugin" );
+         my->configured = true;
+
+         if( options.at( "replay-blockchain" ).as<bool>() || options.at( "hard-replay-blockchain" ).as<bool>() || options.at( "delete-all-blocks" ).as<bool>() ) {
+            if( options.at( "ledger-data-wipe" ).as<bool>()) {
+               ilog( "Wiping mysql database on startup" );
+               my->wipe_database_on_startup = true;
+            } else if( options.count( "ledger-db-block-start" ) == 0 ) {
+               EOS_ASSERT( false, chain::plugin_config_exception, "--ledger-data-wipe required with --replay-blockchain, --hard-replay-blockchain, or --delete-all-blocks"
+                                 " --ledger-data-wipe will remove all EOS collections from mysqldb." );
+            }
+         }
+
+        /*
+         if( options.at( "replay-blockchain" ).as<bool>() || options.at( "hard-replay-blockchain" ).as<bool>() ) {
+            my->is_replaying = true; 
+         }
+         */
+
+         if( options.count( "ledger-db-block-end" ) ) {
+            my->end_block_num = options.at("ledger-db-block-end").as<uint32_t>();
+         }
+         if( options.count( "abi-serializer-max-time-ms") == 0 ) {
+            EOS_ASSERT(false, chain::plugin_config_exception, "--abi-serializer-max-time-ms required as default value not appropriate for parsing full blocks");
+         }
+         my->abi_serializer_max_time = app().get_plugin<chain_plugin>().get_abi_serializer_max_time();
+
+         if( options.count( "ledger-queue-size" )) {
+            my->max_queue_size = options.at( "ledger-queue-size" ).as<uint32_t>();
+         }
+
+         if( options.count( "ledger-db-query-thread" )) {
+            my->query_thread_count = options.at( "ledger-db-query-thread" ).as<uint32_t>();
+         }
+         
+         if( options.count( "ledger-db-block-start" )) {
+            my->start_block_num = options.at( "ledger-db-block-start" ).as<uint32_t>();
+         }
+         if( options.count( "producer-name") ) {
+            wlog( "MySQL plugin not recommended on producer node" );
+            //my->is_producer = true;
+         }
+         /*
+         if( options.count( "mysqldb-action-idx")) {
+            my->start_action_idx = options.at( "mysqldb-action-idx" ).as<uint64_t>();
+         }
+         */
+         if( my->start_block_num == 0 ) {
+            my->start_block_reached = true;
+         }
+
+         uint16_t port = 3306;
+         uint16_t max_conn = 5;
+
+         // create mysql db connection pool
+         std::string host_str = options.at("ledger-db-host").as<std::string>();
+         if( options.count( "ledger-db-port" )) {
+            port = options.at("ledger-db-port").as<uint16_t>();
+         }
+         std::string userid = options.at("ledger-db-user").as<std::string>();
+         std::string pwd = options.at("ledger-db-passwd").as<std::string>();
+         std::string database = options.at("ledger-db-database").as<std::string>();
+         if( options.count( "ledger-db-max-connection" )) {
+            max_conn = options.at("ledger-db-max-connection").as<uint16_t>();
+         }
+
+         
+         // hook up to signals on controller
+         chain_plugin* chain_plug = app().find_plugin<chain_plugin>();
+         EOS_ASSERT( chain_plug, chain::missing_chain_plugin_exception, ""  );
+         auto& chain = chain_plug->chain();
+         my->chain_id.emplace( chain.get_chain_id());
+
+         my->applied_transaction_connection.emplace(
+            chain.applied_transaction.connect( [&]( const chain::transaction_trace_ptr& t ) {
+               my->applied_transaction( t );
+            } ));
+         
+         ilog( "connect to ${h}:${p}. ${u}@${d} ", ("h", host_str)("p", port)("u", userid)("d", database));
+         // bool close_on_unlock = options.at("mysqldb-close-on-unlock").as<bool>();
+         my->init(host_str, userid, pwd, database, port, max_conn, close_on_unlock, my->start_block_num, options);
+         
+      } else {
+         wlog( "eosio::mysql_db_plugin configured, but no --mysqldb-uri specified." );
+         wlog( "mysql_db_plugin disabled." );
       }
-   }
-   FC_LOG_AND_RETHROW()
+   } FC_LOG_AND_RETHROW()
 }
 
 void ledger_plugin::plugin_startup() {
@@ -321,6 +404,14 @@ void ledger_plugin::plugin_shutdown() {
    // OK, that's enough magic
    my->applied_transaction_connection.reset();
    my.reset();
+}
+
+void post_query_str_to_queue(const std::string query_str) {
+      if (!static_mysql_db_plugin_impl) return; 
+
+      static_mysql_db_plugin_impl->queue(
+            static_mysql_db_plugin_impl->query_queue, query_str
+      );
 }
 
 }
