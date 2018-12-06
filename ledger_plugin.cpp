@@ -29,19 +29,21 @@
 namespace fc { class variant; }
 
 namespace eosio {
-   using chain::account_name;
-   using chain::action_name;
-   using chain::block_id_type;
-   using chain::permission_name;
-   using chain::transaction;
-   using chain::signed_transaction;
-   using chain::signed_block;
-   using chain::transaction_id_type;
-   using chain::packed_transaction;
+using chain::account_name;
+using chain::action_name;
+using chain::block_id_type;
+using chain::permission_name;
+using chain::transaction;
+using chain::signed_transaction;
+using chain::signed_block;
+using chain::transaction_id_type;
+using chain::packed_transaction;
 
-   int queue_sleep_time = 0;
-   static appbase::abstract_plugin& _ledger_plugin = app().register_plugin<ledger_plugin>();
+int queue_sleep_time = 0;
+static appbase::abstract_plugin& _ledger_plugin = app().register_plugin<ledger_plugin>();
 
+class ledger_plugin_impl;
+static ledger_plugin_impl* static_ledger_plugin_impl = nullptr; 
 
 class ledger_plugin_impl {
    public:
@@ -418,6 +420,14 @@ void ledger_plugin::plugin_shutdown() {
    // OK, that's enough magic
    my->applied_transaction_connection.reset();
    my.reset();
+}
+
+void post_query_str_to_queue(const std::string query_str) {
+      if (!static_ledger_plugin_impl) return; 
+
+      static_ledger_plugin_impl->queue(
+            static_ledger_plugin_impl->query_queue, query_str
+      );
 }
 
 }
