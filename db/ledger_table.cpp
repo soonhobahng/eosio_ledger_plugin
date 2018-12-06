@@ -39,7 +39,7 @@ ledger_table::~ledger_table()
 
 }
 
-void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, block_timestamp_type block_time, std::string receiver, chain::action action) 
+void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, chain::block_timestamp_type block_time, std::string receiver, chain::action action) 
 {
     chain::abi_def abi;
     std::string abi_def_account;

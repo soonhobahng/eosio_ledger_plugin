@@ -15,7 +15,7 @@ namespace eosio {
             ledger_table(std::shared_ptr<connection_pool> pool, uint32_t raw_bulk_max_count, uint32_t account_bulk_max_count);
             ~ledger_table();
 
-            void add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, block_timestamp_type block_time, std::string receiver, chain::action action);
+            void add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, chain::block_timestamp_type block_time, std::string receiver, chain::action action);
 
             void finalize();
         private:
