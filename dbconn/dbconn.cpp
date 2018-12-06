@@ -5,11 +5,13 @@
 #include "dbconn.hpp"
 #include <mysqlx/xdevapi.h>
 
+using namespace mysqlx;
+
 using std::string;
 
 namespace eosio {
-    using namespace mysqlx;
     
+
     dbconn::dbconn(const std::string host, const std::string user, const std::string passwd, const std::string database, const uint16_t port, const uint16_t max_conn)
     {
 

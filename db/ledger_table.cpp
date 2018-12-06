@@ -9,9 +9,9 @@
 #include "../dbconn/dbconn.hpp"
 #include "ledger_table.hpp"
 
-namespace eosio {
-
 using namespace mysqlx;
+
+namespace eosio {
 
 static const std::string LEDGER_INSERT_STR =
     "INSERT IGNORE INTO ledger(action_id, transaction_id, block_number, timestamp, contract_owner, executor, from_account, to_account, quantity, symbol, receiver, action_name, created_at ) VALUES ";
