@@ -196,7 +196,7 @@ void ledger_table::post_raw_query() {
 
 }
 
-void actions_table::post_acc_query() {
+void ledger_table::post_acc_query() {
     if (account_bulk_count) {
         post_query_str_to_queue(
             ACTIONS_ACCOUNT_INSERT_STR +
