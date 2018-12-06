@@ -9,6 +9,7 @@ add_library( ledger_plugin
 
 target_link_libraries( ledger_plugin 
     PUBLIC chain_plugin eosio_chain appbase
+    libmysqlcppconn
 )
 target_include_directories( ledger_plugin PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
 eosio_additional_plugin(ledger_plugin)
