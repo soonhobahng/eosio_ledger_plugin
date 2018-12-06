@@ -3,14 +3,34 @@
  *  @copyright defined in eos/LICENSE.txt
  */
 #include <eosio/ledger_plugin/ledger_plugin.hpp>
+#include <eosio/chain/eosio_contract.hpp>
+#include <eosio/chain/config.hpp>
+#include <eosio/chain/exceptions.hpp>
+#include <eosio/chain/transaction.hpp>
+#include <eosio/chain/types.hpp>
+
+#include <fc/io/json.hpp>
+#include <fc/utf8.hpp>
+#include <fc/variant.hpp>
+
+#include <boost/chrono.hpp>
+#include <boost/signals2/connection.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+
+#include <queue>
+#include <sstream>
+
+#include <future>
 
 namespace eosio {
    static appbase::abstract_plugin& _ledger_plugin = app().register_plugin<ledger_plugin>();
 
 class ledger_plugin_impl {
    public:
-      ledger_plugin();
-      ~ledger_plugin();
+      ledger_plugin_impl();
+      ~ledger_plugin_impl();
 
       fc::optional<boost::signals2::scoped_connection> applied_transaction_connection;
       
