@@ -182,9 +182,10 @@ void ledger_plugin_impl::process_add_ledger( const chain::action_trace& atrace )
 
    const auto action_id = atrace.receipt.global_sequence ; 
    const auto trx_id    = atrace.trx_id;
-   const auto block_time = std::chrono::seconds{atrace.block_time.operator fc::time_point().sec_since_epoch()}.count();
+   const auto block_time = atrace.block_time;
+   
 
-   m_ledger_table->add_ledger(action_id, trx_id, block_number, block_time.as_string(), atrace.receipt.receiver.to_string(), atrace.act);
+   m_ledger_table->add_ledger(action_id, trx_id, block_number, block_time, atrace.receipt.receiver.to_string(), atrace.act);
    
    for( const auto& inline_atrace : atrace.inline_traces ) {
       process_add_ledger( inline_atrace );
