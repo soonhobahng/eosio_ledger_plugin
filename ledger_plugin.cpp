@@ -24,6 +24,8 @@
 
 #include <future>
 
+#include <mysqlx/xdevapi.h>
+
 #include "ledger_table.hpp"
 
 namespace fc { class variant; }
@@ -152,13 +154,13 @@ void ledger_plugin_impl::consume_query_process() {
          lock.unlock();
 
          if (query_queue_count > 0) {
-            mysqlx_session_t* sess = m_connection_pool->get_connection();
+            Session sess = m_connection_pool->get_connection();
             try{
                sess.sql(query_str).execute();
 
-               m_connection_pool->release_connection(sess);
+               sess.close();
             } catch (...) {
-               m_connection_pool->release_connection(sess);
+               sess.close();
             }
          }
       

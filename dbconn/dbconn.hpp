@@ -7,10 +7,9 @@
 #include <string>
 #include <memory>
 
-#include "include/mysqlx/xapi.h"
+#include <mysqlx/xdevapi.h>
 
 using std::shared_ptr;
-
 
 namespace eosio{
 class dbconn {
@@ -18,11 +17,11 @@ class dbconn {
         explicit dbconn(const std::string host, const std::string user, const std::string passwd, const std::string database, const uint16_t port, const uint16_t max_conn);
         ~dbconn();
 
-        mysqlx_session_t* get_connection();
-        void release_connection(mysqlx_session_t* sess);
+        Session* get_connection();
+        void release_connection(Session* sess);
 
     private:
-        mysqlx_client_t *cli;
+        Client *cli;
 
 
 };

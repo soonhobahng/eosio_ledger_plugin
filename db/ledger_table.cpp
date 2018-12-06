@@ -4,6 +4,8 @@
 #include <eosio/chain/transaction.hpp>
 #include <eosio/chain/types.hpp>
 
+#include <mysqlx/xdevapi.h>
+
 #include "../dbconn/dbconn.hpp"
 #include "ledger_table.hpp"
 
@@ -73,9 +75,10 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 auto symbol = asset_quantity.get_symbol().name();
                 int exist;
 
-                mysqlx_session_t* sess = m_pool.get_connection();
+                Session sess = m_pool.get_connection();
                 sess.sql("INSERT INTO tokens (account, amount, symbol) VALUES (?, ?, ?) ON DUPLICATE UPDATE SET amount = ? ;").bind(to_name,asset_qty,symbol).execute();
                 sess.sql("UPDATE tokens SET amount = amount - ? WHERE account = ? AND symbol = ? ").bind(asset_qty,from_name,symbol).execute();
+                sess.close();
             }
         } catch( std::exception& e ) {
             // ilog( "Unable to convert action.data to ABI: ${s}::${n}, std what: ${e}",
