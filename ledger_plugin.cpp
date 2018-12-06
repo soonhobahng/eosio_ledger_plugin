@@ -227,12 +227,17 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
    m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn);
 
    {
-      uint32_t ledger_ag_count = 1; 
-      if( options.count( "ledger-db-ag" )) {
-            ledger_ag_count = options.at("ledger-db-ag").as<uint32_t>();
+      uint32_t ledger_raw_ag_count = 10;
+      uint32_t ledger_acc_ag_count = 12;
+      if( options.count( "ledger-db-ag-raw" )) {
+            ledger_raw_ag_count = options.at("ledger-db-ag-raw").as<uint32_t>();
       }
-      ilog("Aggregate ledger: ${n}", ("n", ledger_ag_count));
-      m_ledger_table = std::make_unique<ledger_table>(m_connection_pool, ledger_ag_count);
+      if( options.count( "ledger-db-ag-acc" )) {
+            ledger_acc_ag_count = options.at("ledger-db-ag-acc").as<uint32_t>();
+      }
+      ilog(" aggregate ledger raw: ${n}", ("n", ledger_raw_ag_count));
+      ilog(" aggregate ledger acc: ${n}", ("n", ledger_acc_ag_count));
+      m_ledger_table = std::make_unique<ledger_table>(m_connection_pool, ledger_raw_ag_count, ledger_acc_ag_count);
    }
    
    m_block_num_start = block_num_start;
