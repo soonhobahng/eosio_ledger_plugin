@@ -93,7 +93,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     % from_name
                     % symbol;
 
-                    shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
+                    shared_ptr<MysqlConnection> con = m_pool->get_connection();
                     assert(con);
                     try{
                             con->execute(raw_bulk_sql_add.str(), true);
