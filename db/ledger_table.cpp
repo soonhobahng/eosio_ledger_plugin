@@ -19,7 +19,7 @@
 namespace eosio {
 
 static const std::string LEDGER_INSERT_STR =
-    "INSERT IGNORE INTO ledger(action_id, transaction_id, block_number, timestamp, contract_owner, executor, from_account, to_account, quantity, symbol, receiver, action_name, created_at ) VALUES ";
+    "INSERT IGNORE INTO ledger(action_id, transaction_id, block_number, timestamp, contract_owner, from_account, to_account, quantity, symbol, receiver, action_name, created_at ) VALUES ";
 static const std::string ACTIONS_ACCOUNT_INSERT_STR = 
     "INSERT INTO actions_accounts(action_id, actor, permission) VALUES ";
 
@@ -41,11 +41,16 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
     chain::abi_serializer abis;
     
     const auto transaction_id_str = transaction_id.str();
-    const auto block_id_str = block_id;
+    const auto block_num = block_number;
     string action_account_name = action.account.to_string();
     int max_field_size = 6500000;
     string escaped_json_str;
     string hex_str;
+
+    string from_name;
+    string to_name;
+    double asset_qty;
+    string symbol;
 
     try {
         try {  
@@ -64,48 +69,43 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     abis.set_abi(abi, abi_serializer_max_time);
                     auto abi_data = abis.binary_to_variant(abis.get_action_type(action.name), action.data, abi_serializer_max_time);
 
-                    auto from_name = abi_data["from"].as<chain::name>().to_string();
-                    auto to_name = abi_data["to"].as<chain::name>().to_string();
-                    auto asset_quantity = abi_data["quantity"].as<chain::asset>();
+                    from_name = abi_data["from"].as<chain::name>().to_string();
+                    to_name = abi_data["to"].as<chain::name>().to_string();
                     
+                    auto asset_quantity = abi_data["quantity"].as<chain::asset>();
+                    asset_qty = asset_quantity.to_real();
+
+                    symbol = asset_quantity.get_symbol().name();
+
+                    std::ostringstream raw_bulk_sql_add;
+                    std::ostringstream raw_bulk_sql_sub;
+
+                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (account, amount, symbol) VALUES ('%1%', '%2%', '%3%') ON DUPLICATE UPDATE SET amount = '%2%' ;")
+                    % to_name
+                    % asset_qty
+                    % symbol;
+
+                    raw_bulk_sql_sub << boost::format("UPDATE tokens SET amount = amount - %1% WHERE account = '%2%' AND symbol = '%3%' ")
+                    % asset_qty
+                    % from_name
+                    % symbol;
+
+                    shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
+                    assert(con);
+                    try{
+                            con->execute(raw_bulk_sql_add.str(), true);
+                            con->execute(raw_bulk_sql_sub.str(), true);
+
+                            m_connection_pool->release_connection(*con);
+                    } catch (...) {
+                            m_connection_pool->release_connection(*con);
+                    }                    
                 } else if (action.account == chain::config::system_account_name) {
                     abi = chain::eosio_contract_abi(abi); 
                 } else {
                     return;         // no ABI no party. Should we still store it?
                 }
                 
-                auto from_name = abi_data["from"].as<chain::name>().to_string();
-                auto to_name = abi_data["to"].as<chain::name>().to_string();
-                
-                auto asset_quantity = abi_data["quantity"].as<chain::asset>();
-                auto asset_qty = asset_quantity.to_real();
-                auto symbol = asset_quantity.get_symbol().name();
-                int exist;
-
-                std::ostringstream raw_bulk_sql_add;
-                std::ostringstream raw_bulk_sql_sub;
-
-                raw_bulk_sql_add << boost::format("INSERT INTO tokens (account, amount, symbol) VALUES ('%1%', '%2%', '%3%') ON DUPLICATE UPDATE SET amount = '%2%' ;")
-                % to_name
-                % asset_qty
-                % symbol;
-
-                raw_bulk_sql_sub << boost::format("UPDATE tokens SET amount = amount - %1% WHERE account = '%2%' AND symbol = '%3%' ")
-                % asset_qty
-                % from_name
-                % symbol;
-
-                shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
-                assert(con);
-                try{
-                        con->execute(raw_bulk_sql_add.str(), true);
-                        con->execute(raw_bulk_sql_sub.str(), true);
-
-                        m_connection_pool->release_connection(*con);
-                } catch (...) {
-                        m_connection_pool->release_connection(*con);
-                }
-                            }
         } catch( std::exception& e ) {
             // ilog( "Unable to convert action.data to ABI: ${s}::${n}, std what: ${e}",
             //       ("s", action.account)( "n", action.name )( "e", e.what()));
@@ -128,31 +128,19 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 raw_bulk_sql << ", ";
             }
 
-            if (escaped_json_str.length()) {
-                raw_bulk_sql << boost::format("('%1%', '%2%', '%3%', '%4%', '%5%', CURRENT_TIMESTAMP, '%6%', NULL, '%7%', '%8%', '%9%')")
-                    % action_id
-                    % parent_action_id
-                    % receiver
-                    % action_account_name
-                    % seq
-                    % action.name.to_string()
-                    % escaped_json_str
-                    % transaction_id_str
-                    % block_id_str;    
 
-            } else {
-                raw_bulk_sql << boost::format("('%1%', '%2%', '%3%', '%4%', '%5%', CURRENT_TIMESTAMP, '%6%', '%7%', NULL, '%8%', '%9%')")
-                    % action_id
-                    % parent_action_id
-                    % receiver
-                    % action_account_name
-                    % seq
-                    % action.name.to_string()
-                    % hex_str
-                    % transaction_id_str
-                    % block_id_str;    
-            }
-
+            raw_bulk_sql << boost::format("('%1%', '%2%', '%3%', FROM_UNIXTIME('%4%'), '%5%', '%6%', '%7%', '%8%', '%9%', '%10%', '%11%', CURRENT_TIMESTAMP)")
+                % action_id
+                % transaction_id_str
+                % block_num
+                % block_time
+                % action_account_name
+                % from_name
+                % to_name
+                % asset_qty
+                % symbol
+                % receiver
+                % action.name.to_string();
 
             raw_bulk_count++;
 
