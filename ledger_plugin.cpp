@@ -40,6 +40,8 @@ namespace eosio {
    using chain::signed_block;
    using chain::transaction_id_type;
    using chain::packed_transaction;
+   
+   using namespace mysqlx;
 
    int queue_sleep_time = 0;
    static appbase::abstract_plugin& _ledger_plugin = app().register_plugin<ledger_plugin>();
