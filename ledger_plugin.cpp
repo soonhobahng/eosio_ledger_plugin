@@ -353,7 +353,7 @@ void ledger_plugin::set_program_options(options_description&, options_descriptio
 void ledger_plugin::plugin_initialize(const variables_map& options) {
    try {
       if( options.count( "ledger-db-host" )) {
-         ilog( "initializing ledge_plugin" );
+         ilog( "initializing ledger_plugin" );
          my->configured = true;
 
          if( options.at( "replay-blockchain" ).as<bool>() || options.at( "hard-replay-blockchain" ).as<bool>() || options.at( "delete-all-blocks" ).as<bool>() ) {
