@@ -39,7 +39,7 @@ ledger_table::~ledger_table()
 
 }
 
-void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, std::string receiver, chain::action action) 
+void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, std::string block_time, std::string receiver, chain::action action) 
 {
     chain::abi_def abi;
     std::string abi_def_account;
@@ -47,7 +47,6 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
     
     const auto transaction_id_str = transaction_id.str();
     const auto block_num = block_number;
-    const auto block_time = action.block_time;
     string action_account_name = action.account.to_string();
     int max_field_size = 6500000;
     string escaped_json_str;
@@ -129,7 +128,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
             return;
         }
 
-        // actions 테이블 인서트. 
+        // ledger 테이블 인서트. 
         {
             if (raw_bulk_count > 0) {
                 raw_bulk_sql << ", ";
@@ -151,16 +150,8 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
             raw_bulk_count++;
 
-            if (raw_bulk_count >= _raw_bulk_max_count) {
-                post_query_str_to_queue(
-                    LEDGER_INSERT_STR +
-                    raw_bulk_sql.str()
-                ); 
-
-
-                raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
-                raw_bulk_count = 0; 
-            }
+            if (raw_bulk_count >= _raw_bulk_max_count)
+                post_raw_query();
         }
 
         // action_account 테이블 인서트
@@ -176,16 +167,8 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
             account_bulk_count++;
 
-            if (account_bulk_count >= _account_bulk_max_count) {
-                post_query_str_to_queue(
-                    ACTIONS_ACCOUNT_INSERT_STR +
-                    account_bulk_sql.str()
-                ); 
-
-
-                account_bulk_sql.str(""); account_bulk_sql.clear(); 
-                account_bulk_count = 0; 
-            }
+            if (account_bulk_count >= _account_bulk_max_count) 
+                post_acc_query();
 
         }
 
@@ -195,15 +178,15 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
 }
 
-void actions_table::finalize() {
+void ledger_table::finalize() {
     post_raw_query();
     post_acc_query();
 }
 
-void actions_table::post_raw_query() {
+void ledger_table::post_raw_query() {
     if (raw_bulk_count) {
         post_query_str_to_queue(
-            ACTIONS_RAW_INSERT_STR +
+            LEDGER_INSERT_STR +
             raw_bulk_sql.str()
         ); 
 
