@@ -1,5 +1,5 @@
 file(GLOB HEADERS "include/eosio/ledger_plugin/*.hpp")
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} include ledger dbconn/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} include ledger dbconn/include db )
 link_directories(dbconn/lib64)
 
 add_library( ledger_plugin
