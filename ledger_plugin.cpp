@@ -224,7 +224,7 @@ void ledger_plugin_impl::wipe_database() {
 void ledger_plugin_impl::init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
       const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options) 
 {
-   m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn);
+   m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn, do_close_on_unlock);
 
    {
       uint32_t ledger_raw_ag_count = 10;
@@ -311,8 +311,10 @@ void ledger_plugin::set_program_options(options_description&, options_descriptio
          "Close connection from db when release lock.")
          
          // bulk aggregation count
-         ("ledger-db-ag", bpo::value<uint32_t>(),
-         "ledger db aggregation count")
+         ("ledger-db-ag-raw", bpo::value<uint32_t>(),
+         "ledger raw db aggregation count")
+         ("ledger-db-ag-acc", bpo::value<uint32_t>(),
+         "ledger acc db aggregation count")
          ;
 }
 
