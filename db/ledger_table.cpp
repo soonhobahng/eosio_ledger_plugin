@@ -99,15 +99,16 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                             con->execute(raw_bulk_sql_add.str(), true);
                             con->execute(raw_bulk_sql_sub.str(), true);
 
-                            m_connection_pool->release_connection(*con);
+                            m_pool->release_connection(*con);
                     } catch (...) {
-                            m_connection_pool->release_connection(*con);
+                            m_pool->release_connection(*con);
                     }                    
                 } else if (action.account == chain::config::system_account_name) {
                     abi = chain::eosio_contract_abi(abi); 
                 } else {
                     return;         // no ABI no party. Should we still store it?
                 }
+            }
                 
         } catch( std::exception& e ) {
             // ilog( "Unable to convert action.data to ABI: ${s}::${n}, std what: ${e}",
