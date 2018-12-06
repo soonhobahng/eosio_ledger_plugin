@@ -154,13 +154,14 @@ void ledger_plugin_impl::consume_query_process() {
          lock.unlock();
 
          if (query_queue_count > 0) {
-            mysqlx.Session sess = m_connection_pool->get_connection();
+            shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
+            assert(con);
             try{
-               sess.sql(query_str).execute();
+                  con->execute(query_str, true);
 
-               sess.close();
+                  m_connection_pool->release_connection(*con);
             } catch (...) {
-               sess.close();
+                  m_connection_pool->release_connection(*con);
             }
          }
       
@@ -223,7 +224,7 @@ void ledger_plugin_impl::wipe_database() {
 void ledger_plugin_impl::init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
       const uint16_t port, const uint16_t max_conn, uint32_t block_num_start, const variables_map& options) 
 {
-   m_connection_pool = std::make_shared<dbconn>(host, user, passwd, database, port, max_conn);
+   m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn);
 
    {
       uint32_t ledger_ag_count = 1; 

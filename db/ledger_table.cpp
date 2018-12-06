@@ -1,5 +1,5 @@
 #include "ledger_table.hpp"
-#include "../dbconn/dbconn.hpp"
+#include "mysqlconn.h"
 
 #include <eosio/chain/eosio_contract.hpp>
 #include <eosio/chain/config.hpp>
@@ -8,8 +8,6 @@
 #include <eosio/chain/types.hpp>
 
 #include <eosio/chain_plugin/chain_plugin.hpp>
-
-#include <mysqlx/xdevapi.h>
 
 #include <fc/io/json.hpp>
 #include <fc/utf8.hpp>
@@ -25,7 +23,7 @@ static const std::string LEDGER_INSERT_STR =
 static const std::string ACTIONS_ACCOUNT_INSERT_STR = 
     "INSERT INTO actions_accounts(action_id, actor, permission) VALUES ";
 
-ledger_table::ledger_table(std::shared_ptr<dbconn> pool, uint32_t bulk_max_count) :
+ledger_table::ledger_table(std::shared_ptr<connection_pool> pool, uint32_t bulk_max_count) :
 m_pool(pool)
 {
 
@@ -84,11 +82,30 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 auto symbol = asset_quantity.get_symbol().name();
                 int exist;
 
-                mysqlx.Session sess = m_pool.get_connection();
-                sess.sql("INSERT INTO tokens (account, amount, symbol) VALUES (?, ?, ?) ON DUPLICATE UPDATE SET amount = ? ;").bind(to_name,asset_qty,symbol).execute();
-                sess.sql("UPDATE tokens SET amount = amount - ? WHERE account = ? AND symbol = ? ").bind(asset_qty,from_name,symbol).execute();
-                sess.close();
-            }
+                std::ostringstream raw_bulk_sql_add;
+                std::ostringstream raw_bulk_sql_sub;
+
+                raw_bulk_sql_add << boost::format("INSERT INTO tokens (account, amount, symbol) VALUES ('%1%', '%2%', '%3%') ON DUPLICATE UPDATE SET amount = '%2%' ;")
+                % to_name
+                % asset_qty
+                % symbol;
+
+                raw_bulk_sql_sub << boost::format("UPDATE tokens SET amount = amount - %1% WHERE account = '%2%' AND symbol = '%3%' ")
+                % asset_qty
+                % from_name
+                % symbol;
+
+                shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
+                assert(con);
+                try{
+                        con->execute(raw_bulk_sql_add.str(), true);
+                        con->execute(raw_bulk_sql_sub.str(), true);
+
+                        m_connection_pool->release_connection(*con);
+                } catch (...) {
+                        m_connection_pool->release_connection(*con);
+                }
+                            }
         } catch( std::exception& e ) {
             // ilog( "Unable to convert action.data to ABI: ${s}::${n}, std what: ${e}",
             //       ("s", action.account)( "n", action.name )( "e", e.what()));
