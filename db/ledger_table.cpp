@@ -39,7 +39,7 @@ ledger_table::~ledger_table()
 
 }
 
-void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, std::string block_time, std::string receiver, chain::action action) 
+void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, block_timestamp_type block_time, std::string receiver, chain::action action) 
 {
     chain::abi_def abi;
     std::string abi_def_account;
@@ -47,6 +47,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
     
     const auto transaction_id_str = transaction_id.str();
     const auto block_num = block_number;
+    const auto block_timestamp = std::chrono::seconds{block_time.operator fc::time_point().sec_since_epoch()}.count();
     string action_account_name = action.account.to_string();
     int max_field_size = 6500000;
     string escaped_json_str;
@@ -139,7 +140,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 % action_id
                 % transaction_id_str
                 % block_num
-                % block_time
+                % block_timestamp
                 % action_account_name
                 % from_name
                 % to_name
