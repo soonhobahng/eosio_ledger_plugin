@@ -3,7 +3,9 @@
  *  @copyright defined in eos/LICENSE.txt
  */
 #pragma once
+#include <eosio/chain_plugin/chain_plugin.hpp>
 #include <appbase/application.hpp>
+#include <memory>
 
 namespace eosio {
 

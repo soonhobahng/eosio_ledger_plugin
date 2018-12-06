@@ -146,7 +146,7 @@ void ledger_plugin_impl::consume_query_process() {
          lock.unlock();
 
          if (query_queue_count > 0) {
-            mysqx_session_t* sess = m_commection_pool->get_connection();
+            mysqx_session_t* sess = m_connection_pool->get_connection();
             try{
                session.sql(query_str).execute();
 
