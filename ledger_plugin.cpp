@@ -85,6 +85,7 @@ class ledger_plugin_impl {
        */
       std::shared_ptr<dbconn> m_connection_pool;
       std::shared_ptr<ledger_table> m_ledger_table;
+      std::string system_account;
 
       uint32_t m_block_num_start;
       size_t max_queue_size      = 100000; 
@@ -153,7 +154,7 @@ void ledger_plugin_impl::consume_query_process() {
          if (query_queue_count > 0) {
             mysqlx_session_t* sess = m_connection_pool->get_connection();
             try{
-               sess->sql(query_str).execute();
+               sess.sql(query_str).execute();
 
                m_connection_pool->release_connection(sess);
             } catch (...) {
