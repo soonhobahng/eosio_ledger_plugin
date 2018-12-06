@@ -24,8 +24,6 @@
 
 #include <future>
 
-#include <mysqlx/xdevapi.h>
-
 #include "ledger_table.hpp"
 
 namespace fc { class variant; }

@@ -9,6 +9,9 @@
 
 #include <eosio/chain_plugin/chain_plugin.hpp>
 
+#include <boost/chrono.hpp>
+#include <boost/format.hpp>
+
 #include <fc/io/json.hpp>
 #include <fc/utf8.hpp>
 #include <fc/variant.hpp>
