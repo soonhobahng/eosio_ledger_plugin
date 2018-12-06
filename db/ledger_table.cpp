@@ -1,13 +1,21 @@
+#include "ledger_table.hpp"
+#include "../dbconn/dbconn.hpp"
+
 #include <eosio/chain/eosio_contract.hpp>
 #include <eosio/chain/config.hpp>
 #include <eosio/chain/exceptions.hpp>
 #include <eosio/chain/transaction.hpp>
 #include <eosio/chain/types.hpp>
+#include <eosio/chain_plugin/chain_plugin.hpp>
 
 #include <mysqlx/xdevapi.h>
 
-#include "../dbconn/dbconn.hpp"
-#include "ledger_table.hpp"
+#include <fc/io/json.hpp>
+#include <fc/utf8.hpp>
+#include <fc/variant.hpp>
+
+#include <iostream>
+#include <future>
 
 using namespace mysqlx;
 
