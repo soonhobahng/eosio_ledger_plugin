@@ -21,6 +21,8 @@
 
 namespace eosio {
 
+extern void post_query_str_to_queue(const std::string query_str);
+
 static const std::string LEDGER_INSERT_STR =
     "INSERT IGNORE INTO ledger(action_id, transaction_id, block_number, timestamp, contract_owner, from_account, to_account, quantity, symbol, receiver, action_name, created_at ) VALUES ";
 static const std::string ACTIONS_ACCOUNT_INSERT_STR = 
@@ -192,4 +194,35 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
     }    
 
 }
+
+void actions_table::finalize() {
+    post_raw_query();
+    post_acc_query();
+}
+
+void actions_table::post_raw_query() {
+    if (raw_bulk_count) {
+        post_query_str_to_queue(
+            ACTIONS_RAW_INSERT_STR +
+            raw_bulk_sql.str()
+        ); 
+
+        raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
+        raw_bulk_count = 0; 
+    }
+
+}
+
+void actions_table::post_acc_query() {
+    if (account_bulk_count) {
+        post_query_str_to_queue(
+            ACTIONS_ACCOUNT_INSERT_STR +
+            account_bulk_sql.str()
+        ); 
+
+        account_bulk_sql.str(""); account_bulk_sql.clear(); 
+        account_bulk_count = 0; 
+    }
+}
+
 }
