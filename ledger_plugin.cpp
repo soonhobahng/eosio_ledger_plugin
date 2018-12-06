@@ -53,7 +53,7 @@ class ledger_plugin_impl {
       void consume_query_process();
 
       void applied_transaction(const chain::transaction_trace_ptr&);
-      void process_applied_transaction(const chain::transaction_trace_ptr);
+      void process_applied_transaction(const chain::transaction_trace_ptr&);
 
       void process_add_ledger( const chain::action_trace& atrace );
 
@@ -70,6 +70,7 @@ class ledger_plugin_impl {
       bool start_block_reached = false;
       bool is_producer = false;
 
+      std::deque<std::string> query_queue; 
       boost::mutex mtx;
       boost::condition_variable condition;
       std::vector<boost::thread> consume_query_threads;
@@ -84,6 +85,9 @@ class ledger_plugin_impl {
        */
       std::shared_ptr<dbconn> m_connection_pool;
       std::shared_ptr<ledger_table> m_ledger_table;
+
+      size_t max_queue_size      = 100000; 
+      size_t query_thread_count  = 4; 
 
 };
 
@@ -146,9 +150,9 @@ void ledger_plugin_impl::consume_query_process() {
          lock.unlock();
 
          if (query_queue_count > 0) {
-            mysqx_session_t* sess = m_connection_pool->get_connection();
+            mysqlx_session_t* sess = m_connection_pool->get_connection();
             try{
-               session.sql(query_str).execute();
+               sess.sql(query_str).execute();
 
                m_connection_pool->release_connection(sess);
             } catch (...) {
@@ -168,7 +172,7 @@ void ledger_plugin_impl::consume_query_process() {
 
 }
 
-void ledger_plugin_impl::process_add_action_trace( const chain::action_trace& atrace ) {
+void ledger_plugin_impl::process_add_ledger( const chain::action_trace& atrace ) {
 
    const auto block_number = atrace.block_num;
    if(block_number == 0) return;
@@ -176,7 +180,7 @@ void ledger_plugin_impl::process_add_action_trace( const chain::action_trace& at
    const auto action_id = atrace.receipt.global_sequence ; 
    const auto trx_id    = atrace.trx_id;
 
-   m_ledger_table->add_ledger(action_id, block_number, trx_id, atrace.receipt.receiver.to_string(), atrace.act);
+   m_ledger_table->add_ledger(action_id, trx_id, block_number, atrace.receipt.receiver.to_string(), atrace.act);
    
    for( const auto& iline_atrace : atrace.inline_traces ) {
       process_add_action_trace( action_id, iline_atrace, act_num );
