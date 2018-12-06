@@ -19,11 +19,14 @@ namespace eosio {
 
             void finalize();
         private:
+            void post_raw_query();
+            void post_acc_query();
+
             std::shared_ptr<connection_pool> m_pool;
 
             uint32_t _raw_bulk_max_count;
             uint32_t _account_bulk_max_count;
-            
+
             uint32_t raw_bulk_count = 0;
             std::ostringstream raw_bulk_sql;
 
