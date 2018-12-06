@@ -18,9 +18,6 @@
 #include <iostream>
 #include <future>
 
-using namespace mysqlx;
-using std::string;
-
 namespace eosio {
 
 static const std::string LEDGER_INSERT_STR =
@@ -87,7 +84,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 auto symbol = asset_quantity.get_symbol().name();
                 int exist;
 
-                Session sess = m_pool.get_connection();
+                mysqlx.Session sess = m_pool.get_connection();
                 sess.sql("INSERT INTO tokens (account, amount, symbol) VALUES (?, ?, ?) ON DUPLICATE UPDATE SET amount = ? ;").bind(to_name,asset_qty,symbol).execute();
                 sess.sql("UPDATE tokens SET amount = amount - ? WHERE account = ? AND symbol = ? ").bind(asset_qty,from_name,symbol).execute();
                 sess.close();
