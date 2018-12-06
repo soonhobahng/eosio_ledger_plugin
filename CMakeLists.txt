@@ -3,7 +3,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} include ledger dbconn/include)
 link_directories(dbconn/lib64)
 
 add_library( ledger_plugin
-            dbconn/dbonn.cpp
+            dbconn/dbconn.cpp
             mysql_db_plugin.cpp
             ${HEADERS} )
 
