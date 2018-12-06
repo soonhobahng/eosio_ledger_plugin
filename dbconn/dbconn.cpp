@@ -26,16 +26,16 @@ namespace eosio {
 
         const char* conn_char = conn_str.str().c_str();
         
-        cli(conn_char,max_conn,ClientOption::POOL_MAX_SIZE,max_conn);    
+        cli = Client(conn_char,max_conn,ClientOption::POOL_MAX_SIZE,max_conn);    
     }
 
     dbconn::~dbconn()
     {
-        cli.close();
+        cli->close();
     }
 
     Session dbconn::get_connection()
     {
-        return cli.getSession();
+        return cli->getSession();
     }
 }
