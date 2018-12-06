@@ -86,6 +86,7 @@ class ledger_plugin_impl {
       std::shared_ptr<dbconn> m_connection_pool;
       std::shared_ptr<ledger_table> m_ledger_table;
 
+      uint32_t m_block_num_start;
       size_t max_queue_size      = 100000; 
       size_t query_thread_count  = 4; 
 
@@ -152,7 +153,7 @@ void ledger_plugin_impl::consume_query_process() {
          if (query_queue_count > 0) {
             mysqlx_session_t* sess = m_connection_pool->get_connection();
             try{
-               sess.sql(query_str).execute();
+               sess->sql(query_str).execute();
 
                m_connection_pool->release_connection(sess);
             } catch (...) {
@@ -182,8 +183,8 @@ void ledger_plugin_impl::process_add_ledger( const chain::action_trace& atrace )
 
    m_ledger_table->add_ledger(action_id, trx_id, block_number, atrace.receipt.receiver.to_string(), atrace.act);
    
-   for( const auto& iline_atrace : atrace.inline_traces ) {
-      process_add_action_trace( action_id, iline_atrace, act_num );
+   for( const auto& inline_atrace : atrace.inline_traces ) {
+      process_add_ledger( inline_atrace );
    }
 }
 
@@ -210,10 +211,8 @@ void ledger_plugin_impl::wipe_database() {
    ilog("wipe tables");
 
    // drop tables
-   m_actions_table->drop();   
-   m_actions_table->create(); 
-
-   m_accounts_table->add(system_account);
+   m_ledger_table->drop();   
+   m_ledger_table->create(); 
 
    ilog("create tables done");
 }
@@ -226,48 +225,10 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
    {
       uint32_t ledger_ag_count = 1; 
       if( options.count( "ledger-db-ag" )) {
-            account_ag_count = options.at("ledger-db-ag").as<uint32_t>();
+            ledger_ag_count = options.at("ledger-db-ag").as<uint32_t>();
       }
-      ilog("Aggregate account: ${n}", ("n", ledger_ag_count));
-      m_accounts_table = std::make_unique<accounts_table>(m_connection_pool, ledger_ag_count);
-   }
-
-   {
-      uint32_t action_raw_ag_count = 10;
-      uint32_t action_acc_ag_count = 12;
-      if( options.count( "ledger-db-ag-action-raw" )) {
-            action_raw_ag_count = options.at("ledger-db-ag-action-raw").as<uint32_t>();
-      }
-      if( options.count( "ledger-db-ag-action-acc" )) {
-            action_acc_ag_count = options.at("ledger-db-ag-action-acc").as<uint32_t>();
-      }
-      ilog("Aggregate action raw: ${n}", ("n", action_raw_ag_count));
-      ilog("Aggregate action acc: ${n}", ("n", action_acc_ag_count));
-      m_actions_table = std::make_unique<actions_table>(m_connection_pool, action_raw_ag_count, action_acc_ag_count);
-
-   }
-
-   {
-      uint32_t block_ag_count = 5;
-      if( options.count( "ledger-db-ag-block" )) {
-            block_ag_count = options.at("ledger-db-ag-block").as<uint32_t>();
-      }
-      ilog("Aggregate block: ${n}", ("n", block_ag_count));
-      m_blocks_table = std::make_unique<blocks_table>(m_connection_pool, block_ag_count);
-   }
-
-   {
-      uint32_t trace_ag_count = 10;
-      uint32_t transaction_ag_count = 10;
-      if( options.count( "ledger-db-ag-trace" )) {
-            trace_ag_count = options.at("ledger-db-ag-trace").as<uint32_t>();
-      }
-      if( options.count( "ledger-db-ag-transaction" )) {
-            transaction_ag_count = options.at("ledger-db-ag-transaction").as<uint32_t>();
-      }
-      ilog("Aggregate trace: ${n}", ("n", trace_ag_count));
-      ilog("Aggregate transaction: ${n}", ("n", transaction_ag_count));
-      m_transactions_table = std::make_unique<transactions_table>(m_connection_pool, trace_ag_count, transaction_ag_count);
+      ilog("Aggregate ledger: ${n}", ("n", ledger_ag_count));
+      m_ledger_table = std::make_unique<ledger_table>(m_connection_pool, ledger_ag_count);
    }
    
    m_block_num_start = block_num_start;
