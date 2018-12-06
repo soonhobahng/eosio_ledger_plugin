@@ -5,8 +5,6 @@
 #include "dbconn.hpp"
 #include <mysqlx/xdevapi.h>
 
-using namespace mysqlx;
-
 using std::string;
 
 namespace eosio {
@@ -26,7 +24,7 @@ namespace eosio {
 
         const char* conn_char = conn_str.str().c_str();
 
-        Client cli_tmp(conn_char,ClientOption::POOL_MAX_SIZE,max_conn);   
+        mysqlx.Client cli_tmp(conn_char,ClientOption::POOL_MAX_SIZE,max_conn);   
         cli = &cli_tmp;
     }
 
@@ -35,7 +33,7 @@ namespace eosio {
         cli->close();
     }
 
-    Session dbconn::get_connection()
+    mysqlx.Session dbconn::get_connection()
     {
         return cli->getSession();
     }

@@ -30,8 +30,6 @@
 
 namespace fc { class variant; }
 
-using namespace mysqlx;
-
 namespace eosio {
    using chain::account_name;
    using chain::action_name;
@@ -156,7 +154,7 @@ void ledger_plugin_impl::consume_query_process() {
          lock.unlock();
 
          if (query_queue_count > 0) {
-            Session sess = m_connection_pool->get_connection();
+            mysqlx.Session sess = m_connection_pool->get_connection();
             try{
                sess.sql(query_str).execute();
 
