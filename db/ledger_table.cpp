@@ -6,6 +6,7 @@
 #include <eosio/chain/exceptions.hpp>
 #include <eosio/chain/transaction.hpp>
 #include <eosio/chain/types.hpp>
+
 #include <eosio/chain_plugin/chain_plugin.hpp>
 
 #include <mysqlx/xdevapi.h>
@@ -18,6 +19,7 @@
 #include <future>
 
 using namespace mysqlx;
+using std::string;
 
 namespace eosio {
 
