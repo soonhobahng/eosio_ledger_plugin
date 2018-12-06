@@ -83,7 +83,7 @@ class ledger_plugin_impl {
       /**
        * database connection
        */
-      std::shared_ptr<dbconn> m_connection_pool;
+      std::shared_ptr<connection_pool> m_connection_pool;
       std::shared_ptr<ledger_table> m_ledger_table;
       std::string system_account;
 
