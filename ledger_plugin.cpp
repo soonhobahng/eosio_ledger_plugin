@@ -58,7 +58,7 @@ class ledger_plugin_impl {
       void process_add_ledger( const chain::action_trace& atrace );
 
       void init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
-         const uint16_t port, const uint16_t max_conn, uint32_t block_num_start, const variables_map& options);
+         const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options);
       void wipe_database();
 
       template<typename Queue, typename Entry> void queue(Queue& queue, const Entry& e);
@@ -222,7 +222,7 @@ void ledger_plugin_impl::wipe_database() {
 }
 
 void ledger_plugin_impl::init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
-      const uint16_t port, const uint16_t max_conn, uint32_t block_num_start, const variables_map& options) 
+      const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options) 
 {
    m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn);
 
