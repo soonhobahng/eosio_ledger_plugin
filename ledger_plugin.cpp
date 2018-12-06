@@ -193,7 +193,7 @@ void ledger_plugin_impl::process_applied_transaction(const chain::transaction_tr
 
    for( const auto& atrace : t->action_traces ) {
       try {
-         process_add_action_trace( 0, atrace, act_num );
+         process_add_ledger( atrace );
       } catch(...) {
          wlog("add action traces failed.");
       }
@@ -211,8 +211,8 @@ void ledger_plugin_impl::wipe_database() {
    ilog("wipe tables");
 
    // drop tables
-   m_ledger_table->drop();   
-   m_ledger_table->create(); 
+   // m_ledger_table->drop();   
+   // m_ledger_table->create(); 
 
    ilog("create tables done");
 }
@@ -220,7 +220,7 @@ void ledger_plugin_impl::wipe_database() {
 void ledger_plugin_impl::init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
       const uint16_t port, const uint16_t max_conn, uint32_t block_num_start, const variables_map& options) 
 {
-   m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn);
+   m_connection_pool = std::make_shared<dbconn>(host, user, passwd, database, port, max_conn);
 
    {
       uint32_t ledger_ag_count = 1; 
@@ -388,7 +388,7 @@ void ledger_plugin::plugin_initialize(const variables_map& options) {
          
          ilog( "connect to ${h}:${p}. ${u}@${d} ", ("h", host_str)("p", port)("u", userid)("d", database));
          // bool close_on_unlock = options.at("mysqldb-close-on-unlock").as<bool>();
-         my->init(host_str, userid, pwd, database, port, max_conn, close_on_unlock, my->start_block_num, options);
+         my->init(host_str, userid, pwd, database, port, max_conn, my->start_block_num, options);
          
       } else {
          wlog( "eosio::mysql_db_plugin configured, but no --mysqldb-uri specified." );
@@ -405,14 +405,6 @@ void ledger_plugin::plugin_shutdown() {
    // OK, that's enough magic
    my->applied_transaction_connection.reset();
    my.reset();
-}
-
-void post_query_str_to_queue(const std::string query_str) {
-      if (!static_mysql_db_plugin_impl) return; 
-
-      static_mysql_db_plugin_impl->queue(
-            static_mysql_db_plugin_impl->query_queue, query_str
-      );
 }
 
 }

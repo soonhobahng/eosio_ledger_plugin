@@ -14,7 +14,7 @@ static const std::string LEDGER_INSERT_STR =
 static const std::string ACTIONS_ACCOUNT_INSERT_STR = 
     "INSERT INTO actions_accounts(action_id, actor, permission) VALUES ";
 
-ledger_table::ledger_table(std::shared_ptr<dbconn> pool) :
+ledger_table::ledger_table(std::shared_ptr<dbconn> pool, uint32_t bulk_max_count) :
 m_pool(pool)
 {
 
