@@ -6,6 +6,7 @@
 #include <eosio/chain/exceptions.hpp>
 #include <eosio/chain/transaction.hpp>
 #include <eosio/chain/types.hpp>
+#include <eosio/chain/block_timestamp.hpp>
 
 #include <eosio/chain_plugin/chain_plugin.hpp>
 
