@@ -302,6 +302,8 @@ void ledger_plugin::set_program_options(options_description&, options_descriptio
          "If specified then only abi data pushed to ledger db until specified block is reached.")
          ("ledger-db-block-end", bpo::value<uint32_t>()->default_value(0),
          "stop when reached end block number.")
+         ("ledger-db-close-on-unlock", bpo::bool_switch()->default_value(false),
+         "Close connection from db when release lock.")
          
          // bulk aggregation count
          ("ledger-db-ag", bpo::value<uint32_t>(),
