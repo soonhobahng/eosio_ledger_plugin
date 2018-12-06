@@ -432,12 +432,12 @@ void ledger_plugin::plugin_initialize(const variables_map& options) {
             } ));
          
          ilog( "connect to ${h}:${p}. ${u}@${d} ", ("h", host_str)("p", port)("u", userid)("d", database));
-         bool close_on_unlock = options.at("mysqldb-close-on-unlock").as<bool>();
+         bool close_on_unlock = options.at("ledger-db-close-on-unlock").as<bool>();
          my->init(host_str, userid, pwd, database, port, max_conn, close_on_unlock, my->start_block_num, options);
          
       } else {
-         wlog( "eosio::mysql_db_plugin configured, but no --mysqldb-uri specified." );
-         wlog( "mysql_db_plugin disabled." );
+         wlog( "eosio::ledger_plugin configured, but no --ledger-db-uri specified." );
+         wlog( "ledger_plugin disabled." );
       }
    } FC_LOG_AND_RETHROW()
 }
