@@ -17,7 +17,7 @@ public:
    ledger_plugin();
    virtual ~ledger_plugin();
  
-   APPBASE_PLUGIN_REQUIRES()
+   APPBASE_PLUGIN_REQUIRES((chain_plugin))
    virtual void set_program_options(options_description&, options_description& cfg) override;
  
    void plugin_initialize(const variables_map& options);

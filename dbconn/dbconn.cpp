@@ -22,7 +22,7 @@ namespace eosio {
         % port;
 
         const char* conn_char = conn_str.str().c_str();
-        char* c_max_size;
+        char* c_max_size = nullptr;
   
         sprintf(c_max_size,"{ \"maxSize\": %d }",max_conn);
         cli = mysqlx_get_client_from_url( conn_char, c_max_size, error_buf, &error_code);
