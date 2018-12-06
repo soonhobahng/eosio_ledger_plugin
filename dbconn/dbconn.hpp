@@ -22,7 +22,7 @@ class dbconn {
         Session get_connection();
 
     private:
-        Client *cli;
+        Client cli;
 
 
 };
