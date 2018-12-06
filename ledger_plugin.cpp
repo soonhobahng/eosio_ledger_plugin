@@ -391,8 +391,8 @@ void ledger_plugin::plugin_initialize(const variables_map& options) {
             } ));
          
          ilog( "connect to ${h}:${p}. ${u}@${d} ", ("h", host_str)("p", port)("u", userid)("d", database));
-         // bool close_on_unlock = options.at("mysqldb-close-on-unlock").as<bool>();
-         my->init(host_str, userid, pwd, database, port, max_conn, my->start_block_num, options);
+         bool close_on_unlock = options.at("mysqldb-close-on-unlock").as<bool>();
+         my->init(host_str, userid, pwd, database, port, max_conn, close_on_unlock, my->start_block_num, options);
          
       } else {
          wlog( "eosio::mysql_db_plugin configured, but no --mysqldb-uri specified." );
