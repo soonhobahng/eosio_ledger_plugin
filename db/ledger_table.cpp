@@ -45,6 +45,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
     
     const auto transaction_id_str = transaction_id.str();
     const auto block_num = block_number;
+    const auto block_time = action.block_time;
     string action_account_name = action.account.to_string();
     int max_field_size = 6500000;
     string escaped_json_str;
@@ -150,7 +151,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
             if (raw_bulk_count >= _raw_bulk_max_count) {
                 post_query_str_to_queue(
-                    ACTIONS_RAW_INSERT_STR +
+                    LEDGER_INSERT_STR +
                     raw_bulk_sql.str()
                 ); 
 

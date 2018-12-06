@@ -16,9 +16,19 @@ namespace eosio {
             ~ledger_table();
 
             void add_ledger(uint64_t action_id, chain::transaction_id_type transaction_id, uint64_t block_number, std::string receiver, chain::action action);
+
+            void finalize();
         private:
             std::shared_ptr<connection_pool> m_pool;
-            uint32_t _bulk_max_count;
+
+            uint32_t _raw_bulk_max_count;
+            uint32_t _account_bulk_max_count;
+            
+            uint32_t raw_bulk_count = 0;
+            std::ostringstream raw_bulk_sql;
+
+            uint32_t account_bulk_count = 0;
+            std::ostringstream account_bulk_sql;
     };
 }
 #endif
