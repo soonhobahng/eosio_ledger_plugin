@@ -212,7 +212,7 @@ void ledger_plugin_impl::process_applied_transaction(const chain::transaction_tr
 
 ledger_plugin_impl::ledger_plugin_impl()
 {
-    static_mysql_db_plugin_impl = this; 
+    static_ledger_plugin_impl = this; 
     ilog("ledger_plugin_impl");
 }
 
