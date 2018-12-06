@@ -1,8 +1,8 @@
+#include "dbconn.hpp"
+
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <iostream>
-
-#include "dbconn.hpp"
 #include <mysqlx/xdevapi.h>
 
 using std::string;
@@ -24,7 +24,7 @@ namespace eosio {
 
         const char* conn_char = conn_str.str().c_str();
 
-        mysqlx.Client cli_tmp(conn_char,ClientOption::POOL_MAX_SIZE,max_conn);   
+        mysqlx.Client cli_tmp(conn_char,mysqlx.ClientOption::POOL_MAX_SIZE,max_conn);   
         cli = &cli_tmp;
     }
 
