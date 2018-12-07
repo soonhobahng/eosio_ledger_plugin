@@ -86,6 +86,8 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     asset_qty = asset_quantity.get_amount();
                     precision = asset_quantity.precision();
 
+                    ilog("amount : ${a}, precision : ${p}",("a",asset_qty)("p",precision));
+                    
                     // asset_qty = asset_quantity.to_real();
 
                     symbol = asset_quantity.get_symbol().name();
