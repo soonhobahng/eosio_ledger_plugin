@@ -83,7 +83,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     if(from_name != receiver) return;
 
                     auto asset_quantity = abi_data["quantity"].as<chain::asset>();
-                    auto asset_qty = asset_quantity.amount();
+                    auto asset_qty = asset_quantity.get_amount();
                     auto precision = asset_quantity.precision();
 
                     // asset_qty = asset_quantity.to_real();
