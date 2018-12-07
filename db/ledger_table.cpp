@@ -25,7 +25,7 @@ namespace eosio {
 extern void post_query_str_to_queue(const std::string query_str);
 
 static const std::string LEDGER_INSERT_STR =
-    "INSERT IGNORE INTO ledger(action_id, transaction_id, block_number, timestamp, contract_owner, from_account, to_account, amount, precision, symbol, receiver, action_name, created_at ) VALUES ";
+    "INSERT IGNORE INTO ledger(`action_id`, `transaction_id`, `block_number`, `timestamp`, `contract_owner`, `from_account`, `to_account`, `amount`, `precision`, `symbol`, `receiver`, `action_name`, `created_at` ) VALUES ";
 static const std::string ACTIONS_ACCOUNT_INSERT_STR = 
     "INSERT INTO actions_accounts(action_id, actor, permission) VALUES ";
 
@@ -86,7 +86,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     asset_qty = asset_quantity.get_amount();
                     precision = asset_quantity.precision();
 
-                    ilog("amount : ${a}, precision : ${p}",("a",asset_qty)("p",precision));
+                    // ilog("amount : ${a}, precision : ${p}",("a",asset_qty)("p",precision));
 
                     // asset_qty = asset_quantity.to_real();
 
@@ -95,13 +95,13 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     std::ostringstream raw_bulk_sql_add;
                     std::ostringstream raw_bulk_sql_sub;
 
-                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (account, amount, symbol, precision) VALUES ('%1%', %2%, '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount + %2% ;")
+                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`) VALUES ('%1%', %2%, '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount + %2% ;")
                     % to_name
                     % asset_qty
                     % symbol
                     % precision;
 
-                    raw_bulk_sql_sub << boost::format("INSERT INTO tokens (account, amount, symbol, precision) VALUES ('%1%', %2% * (-1), '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount - %2% ;")
+                    raw_bulk_sql_sub << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`) VALUES ('%1%', %2% * (-1), '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount - %2% ;")
                     % from_name
                     % asset_qty
                     % symbol
@@ -115,8 +115,8 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
                             m_pool->release_connection(*con);
                     } catch (...) {
-                        ilog("ERROR WHEN insert add token ${s} ",("s",raw_bulk_sql_add.str()));
-                        ilog("ERROR WHEN insert sub token ${s} ",("s",raw_bulk_sql_add.str()));
+                        // ilog("ERROR WHEN insert add token ${s} ",("s",raw_bulk_sql_add.str()));
+                        // ilog("ERROR WHEN insert sub token ${s} ",("s",raw_bulk_sql_add.str()));
                         m_pool->release_connection(*con);
                     }                    
                 } else if (action.account == chain::config::system_account_name) {
