@@ -99,7 +99,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     % symbol
                     % precision;
 
-                    raw_bulk_sql_sub << boost::format("INSERT INTO tokens (account, amount, symbol, precision) VALUES ('%1%', (-1) * '%2%', '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount - %2% ;")
+                    raw_bulk_sql_sub << boost::format("INSERT INTO tokens (account, amount, symbol, precision) VALUES ('%1%', '-%2%', '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount - %2% ;")
                     % from_name
                     % asset_qty
                     % symbol
