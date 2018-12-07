@@ -95,17 +95,19 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     std::ostringstream raw_bulk_sql_add;
                     std::ostringstream raw_bulk_sql_sub;
 
-                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`) VALUES ('%1%', %2%, '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount + %2% ;")
+                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`, `contract_owner`) VALUES ('%1%', %2%, '%3%', '%4%', '%5%') ON DUPLICATE KEY UPDATE amount = amount + %2% ;")
                     % to_name
                     % asset_qty
                     % symbol
-                    % precision;
+                    % precision
+                    % action_account_name;
 
-                    raw_bulk_sql_sub << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`) VALUES ('%1%', %2% * (-1), '%3%', '%4%') ON DUPLICATE KEY UPDATE amount = amount - %2% ;")
+                    raw_bulk_sql_sub << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`, `contract_owner`) VALUES ('%1%', %2% * (-1), '%3%', '%4%', '%5%') ON DUPLICATE KEY UPDATE amount = amount - %2% ;")
                     % from_name
                     % asset_qty
                     % symbol
-                    % precision;
+                    % precision
+                    % action_account_name;
 
                     shared_ptr<MysqlConnection> con = m_pool->get_connection();
                     assert(con);
