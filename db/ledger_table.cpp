@@ -57,7 +57,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
     string from_name;
     string to_name;
     int64_t asset_qty;
-    int16_t precision;
+    int64_t precision;
     string symbol;
 
     try {
