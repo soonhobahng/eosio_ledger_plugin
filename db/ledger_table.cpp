@@ -126,7 +126,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 } else {
                     return;         // no ABI no party. Should we still store it?
                 }
-            } if (action.name == N(create)) {
+            } else if (action.name == N(create)) {
                 // get abi definition from chain
                 chain_plugin* chain_plug = app().find_plugin<chain_plugin>();
                 EOS_ASSERT( chain_plug, chain::missing_chain_plugin_exception, ""  );
