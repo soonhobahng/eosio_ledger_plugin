@@ -186,9 +186,10 @@ void ledger_plugin_impl::process_add_ledger( const chain::action_trace& atrace )
    const auto trx_id    = atrace.trx_id;
    const auto block_time = atrace.block_time;
    
-
-   m_ledger_table->add_ledger(action_id, trx_id, block_number, block_time, atrace.receipt.receiver.to_string(), atrace.act);
-   
+   if(atrace.act.name == N(transfer) || atrace.act.name == N(create)) {
+      m_ledger_table->add_ledger(action_id, trx_id, block_number, block_time, atrace.receipt.receiver.to_string(), atrace.act);
+   }
+      
    for( const auto& inline_atrace : atrace.inline_traces ) {
       process_add_ledger( inline_atrace );
    }

@@ -126,6 +126,61 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 } else {
                     return;         // no ABI no party. Should we still store it?
                 }
+            } if (action.name == N(create)) {
+                // get abi definition from chain
+                chain_plugin* chain_plug = app().find_plugin<chain_plugin>();
+                EOS_ASSERT( chain_plug, chain::missing_chain_plugin_exception, ""  );
+                auto& db = chain_plug->chain();
+                chain::abi_def abi_chain = db.db().find<chain::account_object, chain::by_name>(action.account)->get_abi();    
+
+                if(!abi_chain.version.empty()){
+                    abi = abi_chain;
+                    string abi_json = fc::json::to_string(abi);
+
+                    static const fc::microseconds abi_serializer_max_time(1000000); // 1 second
+                    abis.set_abi(abi, abi_serializer_max_time);
+                    auto abi_data = abis.binary_to_variant(abis.get_action_type(action.name), action.data, abi_serializer_max_time);
+
+                    auto issuer = abi_data["issuer"].as<chain::name>().to_string();
+                    auto max_supply = abi_data["maximum_supply"].as<chain::asset>();
+
+                    auto asset_qty = max_supply.get_amount();
+                    auto precision = max_supply.precision();
+
+                    // ilog("amount : ${a}, precision : ${p}",("a",asset_qty)("p",precision));
+
+                    // asset_qty = asset_quantity.to_real();
+
+                    auto symbol = max_supply.get_symbol().name();
+
+                    std::ostringstream tokenlist_add;
+                    std::ostringstream raw_bulk_sql_add;
+
+                    tokenlist_add << boost::format("INSERT IGNORE INTO tokenlist (`contract_owner`, `symbol`, `precision`, `maximum_supply`) VALUES ('%1%', %2%, '%3%', '%4%');")
+                    % issuer
+                    % symbol
+                    % precision
+                    % asset_qty;
+
+                    raw_bulk_sql_add << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`, `contract_owner`) VALUES ('%1%', %2%, '%3%', '%4%', '%5%') ON DUPLICATE KEY UPDATE amount = amount + %2% ;")
+                    % issuer
+                    % asset_qty
+                    % symbol
+                    % precision
+                    % action_account_name;
+
+                    shared_ptr<MysqlConnection> con = m_pool->get_connection();
+                    assert(con);
+                    try{
+                            con->execute(tokenlist_add.str(), true);
+                            con->execute(raw_bulk_sql_add.str(), true);
+
+                            m_pool->release_connection(*con);
+                    } catch (...) {
+                        m_pool->release_connection(*con);
+                    }                    
+                }
+                return;
             } else {
                 return;
             }
