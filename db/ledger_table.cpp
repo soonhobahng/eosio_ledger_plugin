@@ -156,12 +156,12 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     std::ostringstream tokenlist_add;
                     std::ostringstream raw_bulk_sql_add;
 
-                    tokenlist_add << boost::format("INSERT IGNORE INTO tokenlist (`contract_owner`, `symbol`, `precision`, `maximum_supply`) VALUES ('%1%', %2%, '%3%', '%4%');")
+                    tokenlist_add << boost::format("INSERT IGNORE INTO tokenlist (`contract_owner`, `symbol`, `precision`, `maximum_supply`) VALUES ('%1%', '%2%', '%3%', '%4%');")
                     % issuer
                     % symbol
                     % precision
                     % asset_qty;
-ilog(tokenlist_add.str());
+
                     raw_bulk_sql_add << boost::format("INSERT INTO tokens (`account`, `amount`, `symbol`, `precision`, `contract_owner`) VALUES ('%1%', %2%, '%3%', '%4%', '%5%') ON DUPLICATE KEY UPDATE amount = amount + %2% ;")
                     % issuer
                     % asset_qty
