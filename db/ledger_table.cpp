@@ -51,9 +51,6 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
     const auto block_num = block_number;
     const auto block_timestamp = std::chrono::seconds{block_time.operator fc::time_point().sec_since_epoch()}.count();
     string action_account_name = action.account.to_string();
-    int max_field_size = 6500000;
-    string escaped_json_str;
-    string hex_str;
 
     string from_name;
     string to_name;
@@ -261,20 +258,6 @@ void ledger_table::finalize() {
     post_acc_query();
 }
 
-void ledger_table::post_raw_query() {
-    if (raw_bulk_count) {
-        post_query_str_to_queue(
-            LEDGER_INSERT_STR +
-            raw_bulk_sql.str()
-        ); 
-
-        raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
-        raw_bulk_count = 0;
-        raw_bulk_insert_tick = 0; 
-    }
-
-}
-
 void ledger_table::tick(const int64_t tick) {
     if (raw_bulk_insert_tick && ((tick - raw_bulk_insert_tick) > 5000 )) {
         /*
@@ -294,6 +277,20 @@ void ledger_table::tick(const int64_t tick) {
             << std::endl; 
         //*/
         post_acc_query(); 
+    }
+
+}
+
+void ledger_table::post_raw_query() {
+    if (raw_bulk_count) {
+        post_query_str_to_queue(
+            LEDGER_INSERT_STR +
+            raw_bulk_sql.str()
+        ); 
+
+        raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
+        raw_bulk_count = 0;
+        raw_bulk_insert_tick = 0; 
     }
 
 }

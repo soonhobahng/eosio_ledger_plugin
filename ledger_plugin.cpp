@@ -104,6 +104,7 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
 
       uint32_t m_block_num_start;
       size_t max_queue_size      = 100000; 
+      size_t max_trace_size      = 1000; 
       size_t query_thread_count  = 4; 
       size_t trace_thread_count  = 1; 
 
@@ -426,6 +427,8 @@ void ledger_plugin::set_program_options(options_description&, options_descriptio
    cfg.add_options()
          ("ledger-queue-size", bpo::value<uint32_t>()->default_value(100000),
          "Query queue size.")
+         ("ledger-trace-size", bpo::value<uint32_t>()->default_value(1000),
+         "Trace queue size.")
          ("ledger-db-query-thread", bpo::value<uint32_t>()->default_value(4),
          "Query work thread count.")
          ("ledger-db-trace-thread", bpo::value<uint32_t>()->default_value(4),
@@ -493,6 +496,10 @@ void ledger_plugin::plugin_initialize(const variables_map& options) {
 
          if( options.count( "ledger-queue-size" )) {
             my->max_queue_size = options.at( "ledger-queue-size" ).as<uint32_t>();
+         }
+
+         if( options.count( "ledger-trace-size" )) {
+            my->max_trace_size = options.at( "ledger-trace-size" ).as<uint32_t>();
          }
 
          if( options.count( "ledger-db-query-thread" )) {
