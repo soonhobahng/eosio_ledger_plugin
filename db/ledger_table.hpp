@@ -33,10 +33,12 @@ namespace eosio {
             uint32_t raw_bulk_count = 0;
             int64_t raw_bulk_insert_tick = 0;
             std::ostringstream raw_bulk_sql;
+            std::string str_raw_bulk_sql;
 
             uint32_t account_bulk_count = 0;
             int64_t account_bulk_insert_tick = 0;
             std::ostringstream account_bulk_sql;
+            std::string str_account_bulk_sql;
     };
 }
 #endif

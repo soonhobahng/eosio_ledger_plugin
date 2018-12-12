@@ -220,6 +220,8 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 % receiver
                 % action.name.to_string();
 
+            str_raw_bulk_sql.append(raw_bulk_sql.str());
+
             raw_bulk_count++;
 
             if (!raw_bulk_insert_tick)
@@ -238,6 +240,8 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 % action_id 
                 % auth.actor.to_string()
                 % auth.permission.to_string();
+
+            str_account_bulk_sql.append(account_bulk_sql);
 
             account_bulk_count++;
             if (!account_bulk_insert_tick)
@@ -283,14 +287,14 @@ void ledger_table::tick(const int64_t tick) {
 
 void ledger_table::post_raw_query() {
     if (raw_bulk_count) {
-        std::string query_str = raw_bulk_sql.str();
-        query_str.pop_back();
+        str_raw_bulk_sql.pop_back();
 
         post_query_str_to_queue(
             LEDGER_INSERT_STR +
             query_str
         ); 
         
+        str_raw_bulk_sql = "";
         raw_bulk_count = 0;
         raw_bulk_insert_tick = 0; 
     }
@@ -299,14 +303,15 @@ void ledger_table::post_raw_query() {
 
 void ledger_table::post_acc_query() {
     if (account_bulk_count) {
-        std::string query_str = account_bulk_sql.str();       
-        query_str.pop_back();
+        str_account_bulk_sql.pop_back();
 
         post_query_str_to_queue(
             ACTIONS_ACCOUNT_INSERT_STR +
             query_str
         ); 
         
+        str_account_bulk_sql = "";
+
         account_bulk_count = 0; 
         account_bulk_insert_tick = 0;
     }
