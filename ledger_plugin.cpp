@@ -207,8 +207,6 @@ void ledger_plugin_impl::consume_applied_transactions() {
 }
 
 void ledger_plugin_impl::consume_query_process() {
-   std::deque<std::string> query_process_queue;
-
    try {
       while (true) {
          boost::mutex::scoped_lock lock(mtx_query);
@@ -308,11 +306,11 @@ ledger_plugin_impl::~ledger_plugin_impl() {
             
          }
 
-         for (size_t i=0; i< consume_query_threads.size(); i++ ) {
+         for (size_t i=0; i< consume_applied_trans_threads.size(); i++ ) {
             condition.notify_one();
          }
 
-         for (size_t i=0; i< consume_query_threads.size(); i++ ) {
+         for (size_t i=0; i< consume_applied_trans_threads.size(); i++ ) {
             consume_applied_trans_threads[i].join(); 
             
          }         
