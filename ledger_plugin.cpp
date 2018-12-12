@@ -153,7 +153,7 @@ void ledger_plugin_impl::applied_transaction( const chain::transaction_trace_ptr
 
 void ledger_plugin_impl::consume_applied_transactions() {
    std::deque<chain::transaction_trace_ptr> transaction_trace_process_queue;
-   
+
    try {
       while (true) {
          boost::mutex::scoped_lock lock(mtx_applied_trans);
@@ -207,6 +207,8 @@ void ledger_plugin_impl::consume_applied_transactions() {
 }
 
 void ledger_plugin_impl::consume_query_process() {
+   std::deque<std::striing> query_process_queue;
+
    try {
       while (true) {
          boost::mutex::scoped_lock lock(mtx);
@@ -214,24 +216,35 @@ void ledger_plugin_impl::consume_query_process() {
             condition.wait(lock);
          }
          
-         size_t query_queue_count = query_queue.size(); 
-         std::string query_str = "";
-         if (query_queue_count > 0) {
-            query_str = query_queue.front(); 
-            query_queue.pop_front(); 
+         // capture for processing
+         size_t query_queue_size = query_queue.size();
+         if (query_queue_size > 0) {
+            query_process_queue = move(query_queue);
+            query_queue.clear();
          }
 
-         lock.unlock();
+         // size_t query_queue_count = query_queue.size(); 
+         // std::string query_str = "";
+         // if (query_queue_count > 0) {
+         //    query_str = query_queue.front(); 
+         //    query_queue.pop_front(); 
+         // }
 
-         if (query_queue_count > 0) {
+         lock.unlock();
+         std::string query_str = "";
+
+         if (query_queue_size > 0) {
             shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
             assert(con);
             try{
+               while (!query_process_queue.empty()) {
+                  query_str = query_process_queue.front(); 
                   con->execute(query_str, true);
-
-                  m_connection_pool->release_connection(*con);
+                  query_process_queue.pop_front();
+               }
+               m_connection_pool->release_connection(*con);
             } catch (...) {
-                  m_connection_pool->release_connection(*con);
+               m_connection_pool->release_connection(*con);
             }
          }
       
