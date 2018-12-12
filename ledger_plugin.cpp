@@ -250,13 +250,13 @@ void ledger_plugin_impl::process_add_ledger( const chain::action_trace& atrace )
 
    const auto block_number = atrace.block_num;
    if(block_number == 0) return;
-   
+
    const auto action_id = atrace.receipt.global_sequence ; 
    const auto trx_id    = atrace.trx_id;
    const auto block_time = atrace.block_time;
    
    if(atrace.act.name == N(transfer) || atrace.act.name == N(create)) {
-      ilog("action_id : ${a}",("a",action_id));
+      // ilog("action_id : ${a}",("a",action_id));
       m_ledger_table->add_ledger(action_id, trx_id, block_number, block_time, atrace.receipt.receiver.to_string(), atrace.act);
    }
       

@@ -269,7 +269,8 @@ void ledger_table::post_raw_query() {
         ); 
 
         raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
-        raw_bulk_count = 0; 
+        raw_bulk_count = 0; \
+        raw_bulk_insert_tick = 0; 
     }
 
 }
@@ -306,6 +307,7 @@ void ledger_table::post_acc_query() {
 
         account_bulk_sql.str(""); account_bulk_sql.clear(); 
         account_bulk_count = 0; 
+        account_bulk_insert_tick = 0;
     }
 }
 
