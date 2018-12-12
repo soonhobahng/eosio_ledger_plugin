@@ -220,7 +220,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 % receiver
                 % action.name.to_string();
 
-            str_raw_bulk_sql.append(raw_bulk_sql.str());
+            str_raw_bulk_sql += raw_bulk_sql.str();
 
             raw_bulk_count++;
 
@@ -241,7 +241,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 % auth.actor.to_string()
                 % auth.permission.to_string();
 
-            str_account_bulk_sql.append(account_bulk_sql);
+            str_account_bulk_sql += account_bulk_sql.str();
 
             account_bulk_count++;
             if (!account_bulk_insert_tick)
@@ -291,7 +291,7 @@ void ledger_table::post_raw_query() {
 
         post_query_str_to_queue(
             LEDGER_INSERT_STR +
-            query_str
+            str_raw_bulk_sql
         ); 
         
         str_raw_bulk_sql = "";
@@ -307,7 +307,7 @@ void ledger_table::post_acc_query() {
 
         post_query_str_to_queue(
             ACTIONS_ACCOUNT_INSERT_STR +
-            query_str
+            str_account_bulk_sql
         ); 
         
         str_account_bulk_sql = "";
