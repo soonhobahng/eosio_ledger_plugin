@@ -248,7 +248,7 @@ void ledger_plugin_impl::consume_query_process() {
             }
          }
       
-         if( query_queue_count == 0 && done ) {
+         if( query_queue_size == 0 && done ) {
             break;
          }      
       }
