@@ -83,7 +83,6 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
       std::deque<std::string> query_queue; 
       std::deque<chain::transaction_trace_ptr> transaction_trace_queue;
 
-      boost::mutex mtx;
       boost::mutex mtx_query;
       boost::mutex mtx_applied_trans;
       boost::condition_variable condition;
@@ -212,7 +211,7 @@ void ledger_plugin_impl::consume_query_process() {
 
    try {
       while (true) {
-         boost::mutex::scoped_lock lock(mtx);
+         boost::mutex::scoped_lock lock(mtx_query);
          while ( query_queue.empty() && !done ) {
             condition.wait(lock);
          }
