@@ -49,7 +49,7 @@ const int64_t get_now_tick() {
 class ledger_plugin_impl;
 static ledger_plugin_impl* static_ledger_plugin_impl = nullptr; 
 
-class ledger_plugin_impl {
+class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_impl>{
    public:
       ledger_plugin_impl(boost::asio::io_service& io);
       ~ledger_plugin_impl();
@@ -321,7 +321,7 @@ ledger_plugin_impl::~ledger_plugin_impl() {
    static_ledger_plugin_impl = nullptr; 
 }
 
-ledger_plugin::ledger_plugin():my(new ledger_plugin_impl()){}
+ledger_plugin::ledger_plugin():my(new ledger_plugin_impl(app().get_io_service())){}
 ledger_plugin::~ledger_plugin(){}
 
 void ledger_plugin_impl::tick_loop_process() {
