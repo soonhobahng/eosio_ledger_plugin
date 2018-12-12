@@ -521,7 +521,7 @@ void post_query_str_to_queue(const std::string query_str) {
       if (!static_ledger_plugin_impl) return; 
 
       static_ledger_plugin_impl->queue(
-            mtx, static_ledger_plugin_impl->query_queue, query_str
+            static_ledger_plugin_impl->mtx, static_ledger_plugin_impl->query_queue, query_str
       );
 }
 
