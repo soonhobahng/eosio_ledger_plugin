@@ -42,12 +42,16 @@ using chain::packed_transaction;
 int queue_sleep_time = 0;
 static appbase::abstract_plugin& _ledger_plugin = app().register_plugin<ledger_plugin>();
 
+const int64_t get_now_tick() {
+    return fc::time_point::now().time_since_epoch().count()/1000;
+}
+
 class ledger_plugin_impl;
 static ledger_plugin_impl* static_ledger_plugin_impl = nullptr; 
 
 class ledger_plugin_impl {
    public:
-      ledger_plugin_impl();
+      ledger_plugin_impl(boost::asio::io_service& io);
       ~ledger_plugin_impl();
 
       fc::optional<boost::signals2::scoped_connection> applied_transaction_connection;
@@ -64,6 +68,8 @@ class ledger_plugin_impl {
       void init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
          const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options);
       void wipe_database();
+
+      void tick_loop_process(); 
 
       template<typename Queue, typename Entry> void queue(boost::mutex& mtx, Queue& queue, const Entry& e);
 
@@ -99,6 +105,8 @@ class ledger_plugin_impl {
       uint32_t m_block_num_start;
       size_t max_queue_size      = 100000; 
       size_t query_thread_count  = 4; 
+
+      boost::asio::deadline_timer  _timer;
 
 };
 
@@ -273,6 +281,7 @@ void ledger_plugin_impl::process_applied_transaction(const chain::transaction_tr
 }
 
 ledger_plugin_impl::ledger_plugin_impl()
+_timer(io)
 {
     static_ledger_plugin_impl = this; 
     ilog("ledger_plugin_impl");
@@ -314,6 +323,27 @@ ledger_plugin_impl::~ledger_plugin_impl() {
 
 ledger_plugin::ledger_plugin():my(new ledger_plugin_impl()){}
 ledger_plugin::~ledger_plugin(){}
+
+void ledger_plugin_impl::tick_loop_process() {
+    std::weak_ptr<ledger_plugin_impl> weak_this = shared_from_this();
+
+    _timer.cancel(); 
+    _timer.expires_from_now( boost::posix_time::milliseconds( 1000 )); 
+
+
+    _timer.async_wait([weak_this](const boost::system::error_code& ec){
+        //ilog("Timer fired! ${t}", ("t",get_now_tick()));
+
+
+        auto self = weak_this.lock(); 
+        int64_t tick = get_now_tick();
+
+        self->m_ledger_table->tick(tick);
+
+        self->tick_loop_process(); 
+    });
+
+} 
 
 void ledger_plugin_impl::wipe_database() {
    ilog("wipe tables");
@@ -381,6 +411,8 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
       consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
       consume_applied_trans_threads.push_back( boost::thread([this] { consume_applied_transactions(); }) );
    }
+   
+   tick_loop_process(); 
    
    startup = false;
 }

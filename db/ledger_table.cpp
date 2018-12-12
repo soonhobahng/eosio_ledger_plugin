@@ -23,6 +23,7 @@
 namespace eosio {
 
 extern void post_query_str_to_queue(const std::string query_str);
+extern const int64_t get_now_tick();
 
 static const std::string LEDGER_INSERT_STR =
     "INSERT IGNORE INTO ledger(`action_id`, `transaction_id`, `block_number`, `timestamp`, `contract_owner`, `from_account`, `to_account`, `amount`, `precision`, `symbol`, `receiver`, `action_name`, `created_at` ) VALUES ";
@@ -266,6 +267,29 @@ void ledger_table::post_raw_query() {
 
         raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
         raw_bulk_count = 0; 
+    }
+
+}
+
+void ledger_table::tick(const int64_t tick) {
+    if (raw_bulk_insert_tick && ((tick - raw_bulk_insert_tick) > 5000 )) {
+        /*
+        std::cout << "action table tick ans save " 
+            << tick << ", " 
+            << tick - raw_bulk_insert_tick 
+            << std::endl; 
+        //*/
+        post_raw_query(); 
+    }
+
+    if (account_bulk_insert_tick && ((tick - account_bulk_insert_tick) > 5000 )) {
+        /*
+        std::cout << "action acc table tick ans save " 
+            << tick << ", " 
+            << tick - account_bulk_insert_tick 
+            << std::endl; 
+        //*/
+        post_acc_query(); 
     }
 
 }
