@@ -53,9 +53,11 @@ class ledger_plugin_impl {
       fc::optional<boost::signals2::scoped_connection> applied_transaction_connection;
       
       void consume_query_process();
+      void consume_applied_transactions();
 
       void applied_transaction(const chain::transaction_trace_ptr&);
       void process_applied_transaction(const chain::transaction_trace_ptr&);
+      void _process_applied_transaction(const chain::transaction_trace_ptr&);
 
       void process_add_ledger( const chain::action_trace& atrace );
 
@@ -73,9 +75,14 @@ class ledger_plugin_impl {
       bool is_producer = false;
 
       std::deque<std::string> query_queue; 
+      std::deque<chain::transaction_trace_ptr> transaction_trace_queue;
+
       boost::mutex mtx;
+      boost::mutex mtx_applied_trans;
       boost::condition_variable condition;
       std::vector<boost::thread> consume_query_threads;
+      std::vector<boost::thread> consume_applied_trans_threads;
+      // boost::thread consume_thread_applied_trans;
 
       boost::atomic<bool> done{false};
       boost::atomic<bool> startup{true};
@@ -116,16 +123,15 @@ void ledger_plugin_impl::queue( Queue& queue, const Entry& e ) {
    condition.notify_one();
 }
 
-void ledger_plugin_impl::applied_transaction( const chain::transaction_trace_ptr& t ) {
+void mysql_db_plugin_impl::applied_transaction( const chain::transaction_trace_ptr& t ) {
    try {
       if( !start_block_reached ) {
          if( t->block_num >= start_block_num ) {
             start_block_reached = true;
          }
       }
-
       if(t->block_num > 0 && start_block_reached){
-         process_applied_transaction(t); 
+         queue( transaction_trace_queue, t );
       }
    } catch (fc::exception& e) {
       elog("FC Exception while applied_transaction ${e}", ("e", e.to_string()));
@@ -133,6 +139,61 @@ void ledger_plugin_impl::applied_transaction( const chain::transaction_trace_ptr
       elog("STD Exception while applied_transaction ${e}", ("e", e.what()));
    } catch (...) {
       elog("Unknown exception while applied_transaction");
+   }
+}
+
+void mysql_db_plugin_impl::consume_applied_transactions() {
+   std::deque<chain::transaction_trace_ptr> transaction_trace_process_queue;
+   
+   try {
+      while (true) {
+         boost::mutex::scoped_lock lock(mtx_applied_trans);
+         while ( transaction_trace_queue.empty() &&
+                 !done ) {
+            condition.wait(lock);
+         }
+
+         // capture for processing
+         size_t transaction_trace_size = transaction_trace_queue.size();
+         if (transaction_trace_size > 0) {
+            transaction_trace_process_queue = move(transaction_trace_queue);
+            transaction_trace_queue.clear();
+         }
+
+         lock.unlock();
+
+         // warn if queue size greater than 75%
+         if( transaction_trace_size > (queue_size * 0.75)) {
+            wlog("queue size: ${q}", ("q", transaction_trace_size));
+         } else if (done) {
+            ilog("draining queue, size: ${q}", ("q", transaction_trace_size));
+         }
+
+         // process transactions
+         auto start_time = fc::time_point::now();
+         auto size = transaction_trace_process_queue.size();
+         while (!transaction_trace_process_queue.empty()) {
+            const auto& t = transaction_trace_process_queue.front();
+            process_applied_transaction(t);
+            transaction_trace_process_queue.pop_front();
+         }
+         auto time = fc::time_point::now() - start_time;
+         auto per = size > 0 ? time.count()/size : 0;
+         if( time > fc::microseconds(500000) ) // reduce logging, .5 secs
+            ilog( "process_applied_transaction, time per: ${p}, size: ${s}, time: ${t}", ("s", size)( "t", time )( "p", per ));
+
+         if( transaction_trace_size == 0 &&
+             done ) {
+            break;
+         }
+      }
+      ilog("mysql_db_plugin consume thread shutdown gracefully");
+   } catch (fc::exception& e) {
+      elog("FC Exception while consuming block ${e}", ("e", e.to_string()));
+   } catch (std::exception& e) {
+      elog("STD Exception while consuming block ${e}", ("e", e.what()));
+   } catch (...) {
+      elog("Unknown exception while consuming block");
    }
 }
 
@@ -233,6 +294,14 @@ ledger_plugin_impl::~ledger_plugin_impl() {
             consume_query_threads[i].join(); 
          }
 
+         for (size_t i=0; i< consume_applied_threads.size(); i++ ) {
+            condition.notify_one();
+         }
+
+         for (size_t i=0; i< consume_applied_threads.size(); i++ ) {
+            consume_applied_trans_threads[i].join(); 
+         }
+
       } catch( std::exception& e ) {
          elog( "Exception on mysql_db_plugin shutdown of consume thread: ${e}", ("e", e.what()));
       }
@@ -308,6 +377,7 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
 
    for (size_t i=0; i<query_thread_count; i++) {
       consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
+      consume_applied_trans_threads.push_back(boost::thread([this] { consume_applied_transactions(); }))
    }
 
    
@@ -393,7 +463,7 @@ void ledger_plugin::plugin_initialize(const variables_map& options) {
             my->start_block_num = options.at( "ledger-db-block-start" ).as<uint32_t>();
          }
          if( options.count( "producer-name") ) {
-            wlog( "MySQL plugin not recommended on producer node" );
+            wlog( "Ledger plugin not recommended on producer node" );
             //my->is_producer = true;
          }
          /*
