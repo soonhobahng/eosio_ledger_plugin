@@ -80,7 +80,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     from_name = abi_data["from"].as<chain::name>().to_string();
                     to_name = abi_data["to"].as<chain::name>().to_string();
                     
-                    if(from_name != receiver) return;
+                    if(to_name != receiver) return;
 
                     auto asset_quantity = abi_data["quantity"].as<chain::asset>();
                     asset_qty = asset_quantity.get_amount();
