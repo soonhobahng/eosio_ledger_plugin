@@ -280,7 +280,7 @@ void ledger_plugin_impl::process_applied_transaction(const chain::transaction_tr
       ilog( "process actions, trans_id: ${r}    time: ${t}", ("r",t->id.str())("t", time) );
 }
 
-ledger_plugin_impl::ledger_plugin_impl()
+ledger_plugin_impl::ledger_plugin_impl(boost::asio::io_service& io) : 
 _timer(io)
 {
     static_ledger_plugin_impl = this; 
@@ -413,7 +413,7 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
    }
    
    tick_loop_process(); 
-   
+
    startup = false;
 }
 
