@@ -84,6 +84,7 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
       std::deque<chain::transaction_trace_ptr> transaction_trace_queue;
 
       boost::mutex mtx;
+      boost::mutex mtx_query;
       boost::mutex mtx_applied_trans;
       boost::condition_variable condition;
       std::vector<boost::thread> consume_query_threads;
@@ -585,7 +586,7 @@ void post_query_str_to_queue(const std::string query_str) {
       if (!static_ledger_plugin_impl) return; 
 
       static_ledger_plugin_impl->queue(
-            static_ledger_plugin_impl->mtx, static_ledger_plugin_impl->query_queue, query_str
+            static_ledger_plugin_impl->mtx_query, static_ledger_plugin_impl->query_queue, query_str
       );
 }
 
