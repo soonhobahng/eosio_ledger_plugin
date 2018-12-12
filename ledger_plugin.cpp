@@ -424,7 +424,6 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
 
    for (size_t i=0; i<query_thread_count; i++) {
       consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
-      consume_applied_trans_threads.push_back( boost::thread([this] { consume_applied_transactions(); }) );
    }
 
    for (size_t i=0; i<trace_thread_count; i++) {
