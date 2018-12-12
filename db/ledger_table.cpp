@@ -205,7 +205,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
             //     raw_bulk_sql << ", ";
             // }
 
-
+            raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
             raw_bulk_sql << boost::format("('%1%', '%2%', '%3%', FROM_UNIXTIME('%4%'), '%5%', '%6%', '%7%', '%8%', '%9%', '%10%', '%11%', '%12%', CURRENT_TIMESTAMP),")
                 % action_id
                 % transaction_id_str
@@ -230,11 +230,11 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
         // action_account 테이블 인서트
         for (const auto& auth : action.authorization) {
-            if (account_bulk_count > 0) {
-                account_bulk_sql << ", ";
-            }
-
-            account_bulk_sql << boost::format(" ('%1%','%2%','%3%')") 
+            // if (account_bulk_count > 0) {
+            //     account_bulk_sql << ", ";
+            // }
+            account_bulk_sql.str(""); account_bulk_sql.clear(); 
+            account_bulk_sql << boost::format("('%1%','%2%','%3%'),") 
                 % action_id 
                 % auth.actor.to_string()
                 % auth.permission.to_string();
@@ -284,15 +284,12 @@ void ledger_table::tick(const int64_t tick) {
 void ledger_table::post_raw_query() {
     if (raw_bulk_count) {
         std::string query_str = raw_bulk_sql.str();
-        raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
-        
         query_str.pop_back();
 
         post_query_str_to_queue(
             LEDGER_INSERT_STR +
             query_str
         ); 
-
         
         raw_bulk_count = 0;
         raw_bulk_insert_tick = 0; 
@@ -302,12 +299,14 @@ void ledger_table::post_raw_query() {
 
 void ledger_table::post_acc_query() {
     if (account_bulk_count) {
+        std::string query_str = account_bulk_sql.str();       
+        query_str.pop_back();
+
         post_query_str_to_queue(
             ACTIONS_ACCOUNT_INSERT_STR +
-            account_bulk_sql.str()
+            query_str
         ); 
-
-        account_bulk_sql.str(""); account_bulk_sql.clear(); 
+        
         account_bulk_count = 0; 
         account_bulk_insert_tick = 0;
     }
