@@ -201,12 +201,12 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
         // ledger 테이블 인서트. 
         {
-            if (raw_bulk_count > 0) {
-                raw_bulk_sql << ", ";
-            }
+            // if (raw_bulk_count > 0) {
+            //     raw_bulk_sql << ", ";
+            // }
 
 
-            raw_bulk_sql << boost::format("('%1%', '%2%', '%3%', FROM_UNIXTIME('%4%'), '%5%', '%6%', '%7%', '%8%', '%9%', '%10%', '%11%', '%12%', CURRENT_TIMESTAMP)")
+            raw_bulk_sql << boost::format("('%1%', '%2%', '%3%', FROM_UNIXTIME('%4%'), '%5%', '%6%', '%7%', '%8%', '%9%', '%10%', '%11%', '%12%', CURRENT_TIMESTAMP),")
                 % action_id
                 % transaction_id_str
                 % block_num
@@ -285,7 +285,7 @@ void ledger_table::post_raw_query() {
     if (raw_bulk_count) {
         post_query_str_to_queue(
             LEDGER_INSERT_STR +
-            raw_bulk_sql.str()
+            raw_bulk_sql.str().pop_back();
         ); 
 
         raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
