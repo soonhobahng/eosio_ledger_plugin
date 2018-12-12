@@ -332,7 +332,7 @@ void ledger_plugin_impl::tick_loop_process() {
 
 
     _timer.async_wait([weak_this](const boost::system::error_code& ec){
-        //ilog("Timer fired! ${t}", ("t",get_now_tick()));
+        ilog("Timer fired! ${t}", ("t",get_now_tick()));
 
 
         auto self = weak_this.lock(); 
