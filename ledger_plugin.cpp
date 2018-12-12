@@ -232,6 +232,7 @@ void ledger_plugin_impl::consume_query_process() {
                con->execute(query_str, true);
                m_connection_pool->release_connection(*con);
             } catch (...) {
+               ilog("sql = ${s}",("s",query_str));
                m_connection_pool->release_connection(*con);
             }
          }
