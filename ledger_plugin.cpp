@@ -163,7 +163,7 @@ void ledger_plugin_impl::consume_applied_transactions() {
          lock.unlock();
 
          // warn if queue size greater than 75%
-         if( transaction_trace_size > (queue_size * 0.75)) {
+         if( transaction_trace_size > (max_queue_size * 0.75)) {
             wlog("queue size: ${q}", ("q", transaction_trace_size));
          } else if (done) {
             ilog("draining queue, size: ${q}", ("q", transaction_trace_size));
