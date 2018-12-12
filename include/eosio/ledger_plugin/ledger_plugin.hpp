@@ -9,9 +9,8 @@
 
 namespace eosio {
 
-/**
- *  This is a template plugin, intended to serve as a starting point for making new plugins
- */
+using ledger_plugin_impl_ptr = std::shared_ptr<class ledger_plugin_impl>;
+
 class ledger_plugin : public plugin<ledger_plugin> {
 public:
    APPBASE_PLUGIN_REQUIRES((chain_plugin))
@@ -26,7 +25,7 @@ public:
    void plugin_shutdown();
 
 private:
-   std::unique_ptr<class ledger_plugin_impl> my;
+   ledger_plugin_impl_ptr my;
 };
 
 }
