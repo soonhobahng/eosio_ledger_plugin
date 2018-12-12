@@ -284,8 +284,8 @@ void ledger_table::tick(const int64_t tick) {
 void ledger_table::post_raw_query() {
     if (raw_bulk_count) {
         post_query_str_to_queue(
-            LEDGER_INSERT_STR +
-            raw_bulk_sql.str().pop_back();
+            (LEDGER_INSERT_STR +
+            raw_bulk_sql.str()).pop_back();
         ); 
 
         raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
