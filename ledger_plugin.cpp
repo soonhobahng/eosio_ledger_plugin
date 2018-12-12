@@ -81,7 +81,7 @@ class ledger_plugin_impl {
       boost::mutex mtx_applied_trans;
       boost::condition_variable condition;
       std::vector<boost::thread> consume_query_threads;
-      boost::thread consume_applied_trans_threads;
+      std::vector<boost::thread> consume_applied_trans_threads;
       // boost::thread consume_thread_applied_trans;
 
       boost::atomic<bool> done{false};
@@ -292,10 +292,17 @@ ledger_plugin_impl::~ledger_plugin_impl() {
 
          for (size_t i=0; i< consume_query_threads.size(); i++ ) {
             consume_query_threads[i].join(); 
+            
          }
 
-         condition.notify_one();
-         consume_applied_trans_threads.join(); 
+         for (size_t i=0; i< consume_query_threads.size(); i++ ) {
+            condition.notify_one();
+         }
+
+         for (size_t i=0; i< consume_query_threads.size(); i++ ) {
+            consume_applied_trans_threads[i].join(); 
+            
+         }         
 
       } catch( std::exception& e ) {
          elog( "Exception on mysql_db_plugin shutdown of consume thread: ${e}", ("e", e.what()));
@@ -372,8 +379,8 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
 
    for (size_t i=0; i<query_thread_count; i++) {
       consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
+      consume_applied_trans_threads.push_back( boost::thread([this] { consume_applied_transactions(); }) );
    }
-   consume_applied_trans_threads = boost::thread([this] { consume_applied_transactions(); });
    
    startup = false;
 }
