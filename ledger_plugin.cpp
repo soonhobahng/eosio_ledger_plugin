@@ -189,8 +189,8 @@ void ledger_plugin_impl::consume_applied_transactions() {
          }
          auto time = fc::time_point::now() - start_time;
          auto per = size > 0 ? time.count()/size : 0;
-         if( time > fc::microseconds(500000) ) // reduce logging, .5 secs
-            ilog( "process_applied_transaction, time per: ${p}, size: ${s}, time: ${t}", ("s", size)( "t", time )( "p", per ));
+         // if( time > fc::microseconds(500000) ) // reduce logging, .5 secs
+         //    ilog( "process_applied_transaction, time per: ${p}, size: ${s}, time: ${t}", ("s", size)( "t", time )( "p", per ));
 
          if( transaction_trace_size == 0 &&
              done ) {
@@ -278,9 +278,9 @@ void ledger_plugin_impl::process_applied_transaction(const chain::transaction_tr
       }
    }   
 
-   auto time = fc::time_point::now() - start_time;
-   if( time > fc::microseconds(500000) )
-      ilog( "process actions, trans_id: ${r}    time: ${t}", ("r",t->id.str())("t", time) );
+   // auto time = fc::time_point::now() - start_time;
+   // if( time > fc::microseconds(500000) )
+   //    ilog( "process actions, trans_id: ${r}    time: ${t}", ("r",t->id.str())("t", time) );
 }
 
 ledger_plugin_impl::ledger_plugin_impl(boost::asio::io_service& io) : 
@@ -576,6 +576,8 @@ void ledger_plugin::plugin_shutdown() {
 
 void post_query_str_to_queue(const std::string query_str) {
       if (!static_ledger_plugin_impl) return; 
+
+      ilog(query_str);
 
       static_ledger_plugin_impl->queue(
             static_ledger_plugin_impl->mtx_query, static_ledger_plugin_impl->query_queue, query_str
