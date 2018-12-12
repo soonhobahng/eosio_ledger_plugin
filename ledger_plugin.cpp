@@ -217,38 +217,28 @@ void ledger_plugin_impl::consume_query_process() {
          }
          
          // capture for processing
-         size_t query_queue_size = query_queue.size();
-         if (query_queue_size > 0) {
-            query_process_queue = move(query_queue);
-            query_queue.clear();
+         size_t query_queue_count = query_queue.size(); 
+         std::string query_str = "";
+         if (query_queue_count > 0) {
+            query_str = query_queue.front(); 
+            query_queue.pop_front(); 
          }
-
-         // size_t query_queue_count = query_queue.size(); 
-         // std::string query_str = "";
-         // if (query_queue_count > 0) {
-         //    query_str = query_queue.front(); 
-         //    query_queue.pop_front(); 
-         // }
 
          lock.unlock();
          std::string query_str = "";
 
-         if (query_queue_size > 0) {
+         if (query_queue_count > 0) {
             shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
             assert(con);
             try{
-               while (!query_process_queue.empty()) {
-                  query_str = query_process_queue.front(); 
-                  con->execute(query_str, true);
-                  query_process_queue.pop_front();
-               }
+               con->execute(query_str, true);
                m_connection_pool->release_connection(*con);
             } catch (...) {
                m_connection_pool->release_connection(*con);
             }
          }
       
-         if( query_queue_size == 0 && done ) {
+         if( query_queue_count == 0 && done ) {
             break;
          }      
       }
