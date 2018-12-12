@@ -225,7 +225,6 @@ void ledger_plugin_impl::consume_query_process() {
          }
 
          lock.unlock();
-         std::string query_str = "";
 
          if (query_queue_count > 0) {
             shared_ptr<MysqlConnection> con = m_connection_pool->get_connection();
