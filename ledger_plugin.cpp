@@ -249,6 +249,8 @@ void ledger_plugin_impl::consume_query_process() {
 void ledger_plugin_impl::process_add_ledger( const chain::action_trace& atrace ) {
 
    const auto block_number = atrace.block_num;
+   if(block_number == 0) return;
+   
    const auto action_id = atrace.receipt.global_sequence ; 
    const auto trx_id    = atrace.trx_id;
    const auto block_time = atrace.block_time;
@@ -265,9 +267,7 @@ void ledger_plugin_impl::process_add_ledger( const chain::action_trace& atrace )
 
 void ledger_plugin_impl::process_applied_transaction(const chain::transaction_trace_ptr& t) {
    auto start_time = fc::time_point::now();
-   const auto block_number = t->block_num;
-   if(block_number == 0) return;
-
+   
    for( const auto& atrace : t->action_traces ) {
       try {      
          process_add_ledger( atrace );
