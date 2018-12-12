@@ -269,7 +269,7 @@ void ledger_table::post_raw_query() {
         ); 
 
         raw_bulk_sql.str(""); raw_bulk_sql.clear(); 
-        raw_bulk_count = 0; \
+        raw_bulk_count = 0;
         raw_bulk_insert_tick = 0; 
     }
 
