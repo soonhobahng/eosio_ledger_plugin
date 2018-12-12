@@ -207,7 +207,7 @@ void ledger_plugin_impl::consume_applied_transactions() {
 }
 
 void ledger_plugin_impl::consume_query_process() {
-   std::deque<std::striing> query_process_queue;
+   std::deque<std::string> query_process_queue;
 
    try {
       while (true) {
