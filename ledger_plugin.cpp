@@ -105,6 +105,7 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
       uint32_t m_block_num_start;
       size_t max_queue_size      = 100000; 
       size_t query_thread_count  = 4; 
+      size_t trace_thread_count  = 1; 
 
       boost::asio::deadline_timer  _timer;
 
@@ -412,6 +413,10 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
       consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
       consume_applied_trans_threads.push_back( boost::thread([this] { consume_applied_transactions(); }) );
    }
+
+   for (size_t i=0; i<trace_thread_count; i++) {
+      consume_applied_trans_threads.push_back( boost::thread([this] { consume_applied_transactions(); }) );
+   }
    
    tick_loop_process(); 
 
@@ -424,6 +429,8 @@ void ledger_plugin::set_program_options(options_description&, options_descriptio
          "Query queue size.")
          ("ledger-db-query-thread", bpo::value<uint32_t>()->default_value(4),
          "Query work thread count.")
+         ("ledger-db-trace-thread", bpo::value<uint32_t>()->default_value(4),
+         "Trace work thread count.")
          ("ledger-data-wipe", bpo::bool_switch()->default_value(false),
          "Required with --replay-blockchain, --hard-replay-blockchain, or --delete-all-blocks to wipe ledger table."
          "This option required to prevent accidental wipe of ledger db.")
@@ -491,6 +498,10 @@ void ledger_plugin::plugin_initialize(const variables_map& options) {
 
          if( options.count( "ledger-db-query-thread" )) {
             my->query_thread_count = options.at( "ledger-db-query-thread" ).as<uint32_t>();
+         }
+
+         if( options.count( "ledger-db-trace-thread" )) {
+            my->trace_thread_count = options.at( "ledger-db-trace-thread" ).as<uint32_t>();
          }
          
          if( options.count( "ledger-db-block-start" )) {
