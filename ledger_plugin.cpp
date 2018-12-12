@@ -65,7 +65,7 @@ class ledger_plugin_impl {
          const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options);
       void wipe_database();
 
-      template<typename Queue, typename Entry> void queue(Queue& queue, const Entry& e);
+      template<typename Queue, typename Entry> void queue(boost::mutex& mtx, Queue& queue, const Entry& e);
 
       bool configured{false};
       bool wipe_database_on_startup{false};
@@ -81,7 +81,7 @@ class ledger_plugin_impl {
       boost::mutex mtx_applied_trans;
       boost::condition_variable condition;
       std::vector<boost::thread> consume_query_threads;
-      std::vector<boost::thread> consume_applied_trans_threads;
+      boost::thread consume_applied_trans_threads;
       // boost::thread consume_thread_applied_trans;
 
       boost::atomic<bool> done{false};
@@ -103,7 +103,7 @@ class ledger_plugin_impl {
 };
 
 template<typename Queue, typename Entry>
-void ledger_plugin_impl::queue( Queue& queue, const Entry& e ) {
+void ledger_plugin_impl::queue(boost::mutex& mtx, Queue& queue, const Entry& e ) {
    boost::mutex::scoped_lock lock( mtx );
    auto queue_size = queue.size();
    if( queue_size > max_queue_size ) {
@@ -131,7 +131,7 @@ void ledger_plugin_impl::applied_transaction( const chain::transaction_trace_ptr
          }
       }
       if(t->block_num > 0 && start_block_reached){
-         queue( transaction_trace_queue, t );
+         queue( mtx_applied_trans, transaction_trace_queue, t );
       }
    } catch (fc::exception& e) {
       elog("FC Exception while applied_transaction ${e}", ("e", e.to_string()));
@@ -294,13 +294,8 @@ ledger_plugin_impl::~ledger_plugin_impl() {
             consume_query_threads[i].join(); 
          }
 
-         for (size_t i=0; i< consume_applied_trans_threads.size(); i++ ) {
-            condition.notify_one();
-         }
-
-         for (size_t i=0; i< consume_applied_trans_threads.size(); i++ ) {
-            consume_applied_trans_threads[i].join(); 
-         }
+         condition.notify_one();
+         consume_applied_trans_threads.join(); 
 
       } catch( std::exception& e ) {
          elog( "Exception on mysql_db_plugin shutdown of consume thread: ${e}", ("e", e.what()));
@@ -377,9 +372,8 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
 
    for (size_t i=0; i<query_thread_count; i++) {
       consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
-      consume_applied_trans_threads.push_back(boost::thread([this] { consume_applied_transactions(); }));
    }
-
+   consume_applied_trans_threads = boost::thread([this] { consume_applied_transactions(); });
    
    startup = false;
 }
@@ -527,7 +521,7 @@ void post_query_str_to_queue(const std::string query_str) {
       if (!static_ledger_plugin_impl) return; 
 
       static_ledger_plugin_impl->queue(
-            static_ledger_plugin_impl->query_queue, query_str
+            mtx, static_ledger_plugin_impl->query_queue, query_str
       );
 }
 
