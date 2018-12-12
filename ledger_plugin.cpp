@@ -123,7 +123,7 @@ void ledger_plugin_impl::queue( Queue& queue, const Entry& e ) {
    condition.notify_one();
 }
 
-void mysql_db_plugin_impl::applied_transaction( const chain::transaction_trace_ptr& t ) {
+void ledger_plugin_impl::applied_transaction( const chain::transaction_trace_ptr& t ) {
    try {
       if( !start_block_reached ) {
          if( t->block_num >= start_block_num ) {
@@ -142,7 +142,7 @@ void mysql_db_plugin_impl::applied_transaction( const chain::transaction_trace_p
    }
 }
 
-void mysql_db_plugin_impl::consume_applied_transactions() {
+void ledger_plugin_impl::consume_applied_transactions() {
    std::deque<chain::transaction_trace_ptr> transaction_trace_process_queue;
    
    try {
@@ -294,11 +294,11 @@ ledger_plugin_impl::~ledger_plugin_impl() {
             consume_query_threads[i].join(); 
          }
 
-         for (size_t i=0; i< consume_applied_threads.size(); i++ ) {
+         for (size_t i=0; i< consume_applied_trans_threads.size(); i++ ) {
             condition.notify_one();
          }
 
-         for (size_t i=0; i< consume_applied_threads.size(); i++ ) {
+         for (size_t i=0; i< consume_applied_trans_threads.size(); i++ ) {
             consume_applied_trans_threads[i].join(); 
          }
 
@@ -377,7 +377,7 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
 
    for (size_t i=0; i<query_thread_count; i++) {
       consume_query_threads.push_back( boost::thread([this] { consume_query_process(); }) );
-      consume_applied_trans_threads.push_back(boost::thread([this] { consume_applied_transactions(); }))
+      consume_applied_trans_threads.push_back(boost::thread([this] { consume_applied_transactions(); }));
    }
 
    
