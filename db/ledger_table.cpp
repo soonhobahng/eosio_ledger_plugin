@@ -124,6 +124,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                 } else {
                     return;         // no ABI no party. Should we still store it?
                 }
+            
             } else if (action.name == N(create)) {
                 // get abi definition from chain
                 chain_plugin* chain_plug = app().find_plugin<chain_plugin>();
@@ -154,7 +155,8 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
                     std::ostringstream tokenlist_add;
                     std::ostringstream raw_bulk_sql_add;
 
-                    tokenlist_add << boost::format("INSERT IGNORE INTO tokenlist (`contract_owner`, `symbol`, `precision`, `maximum_supply`) VALUES ('%1%', '%2%', '%3%', '%4%');")
+                    tokenlist_add << boost::format("INSERT IGNORE INTO tokenlist (`contract_owner`, `issuer`, `symbol`, `precision`, `maximum_supply`) VALUES ('%1%', '%2%', '%3%', '%4%', '%5%');")
+                    % action_account_name
                     % issuer
                     % symbol
                     % precision
