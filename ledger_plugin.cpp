@@ -108,6 +108,9 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
       size_t query_thread_count  = 4; 
       size_t trace_thread_count  = 1; 
 
+      uint32_t ledger_raw_ag_count = 10;
+      uint32_t ledger_acc_ag_count = 12;
+      
       boost::asio::deadline_timer  _timer;
 
 };
@@ -366,8 +369,6 @@ void ledger_plugin_impl::init(const std::string host, const std::string user, co
    m_connection_pool = std::make_shared<connection_pool>(host, user, passwd, database, port, max_conn, do_close_on_unlock);
 
    {
-      uint32_t ledger_raw_ag_count = 10;
-      uint32_t ledger_acc_ag_count = 12;
       if( options.count( "ledger-db-ag-raw" )) {
             ledger_raw_ag_count = options.at("ledger-db-ag-raw").as<uint32_t>();
       }
