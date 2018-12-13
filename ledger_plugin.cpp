@@ -274,7 +274,7 @@ void ledger_plugin_impl::process_applied_transaction(const chain::transaction_tr
 
    for( const auto& atrace : t->action_traces ) {
       try {      
-         process_add_ledger( atrace );
+         process_add_ledger( t_ledger_table, atrace );
       } catch(...) {
          wlog("add action traces failed.");
       }
