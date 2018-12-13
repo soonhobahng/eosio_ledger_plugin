@@ -228,7 +228,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
 
             if (!raw_bulk_insert_tick)
                 raw_bulk_insert_tick = get_now_tick();
-            // if (raw_bulk_count >= _raw_bulk_max_count)
+            if (raw_bulk_count >= _raw_bulk_max_count)
                 post_raw_query();
         }
 
@@ -248,7 +248,7 @@ void ledger_table::add_ledger(uint64_t action_id, chain::transaction_id_type tra
             account_bulk_count++;
             if (!account_bulk_insert_tick)
                 account_bulk_insert_tick = get_now_tick(); 
-            // if (account_bulk_count >= _account_bulk_max_count) 
+            if (account_bulk_count >= _account_bulk_max_count) 
                 post_acc_query();
 
         }

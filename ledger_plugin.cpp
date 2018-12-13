@@ -60,10 +60,9 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
       void consume_applied_transactions();
 
       void applied_transaction(const chain::transaction_trace_ptr&);
-      void process_applied_transaction(const chain::transaction_trace_ptr&);
-      void _process_applied_transaction(const chain::transaction_trace_ptr&);
+      void process_applied_transaction(std::unique_ptr<ledger_table> t_ledger_table, const chain::transaction_trace_ptr&);
 
-      void process_add_ledger( ledger_table* t_ledger_table, const chain::action_trace& atrace );
+      void process_add_ledger( std::unique_ptr<ledger_table> t_ledger_table, const chain::action_trace& atrace );
 
       void init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
          const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options);
@@ -157,6 +156,7 @@ void ledger_plugin_impl::applied_transaction( const chain::transaction_trace_ptr
 
 void ledger_plugin_impl::consume_applied_transactions() {
    std::deque<chain::transaction_trace_ptr> transaction_trace_process_queue;
+   std::unique_ptr<ledger_table> t_ledger_table = std::make_unique<ledger_table>(m_connection_pool, ledger_raw_ag_count, ledger_acc_ag_count);
 
    try {
       while (true) {
@@ -187,7 +187,7 @@ void ledger_plugin_impl::consume_applied_transactions() {
          auto size = transaction_trace_process_queue.size();
          while (!transaction_trace_process_queue.empty()) {
             const auto& t = transaction_trace_process_queue.front();
-            process_applied_transaction(t);
+            process_applied_transaction(t_ledger_table, t);
             transaction_trace_process_queue.pop_front();
          }
          auto time = fc::time_point::now() - start_time;
@@ -252,7 +252,7 @@ void ledger_plugin_impl::consume_query_process() {
 
 }
 
-void ledger_plugin_impl::process_add_ledger( ledger_table* t_ledger_table, const chain::action_trace& atrace ) {
+void ledger_plugin_impl::process_add_ledger( std::unique_ptr<ledger_table>& t_ledger_table, const chain::action_trace& atrace ) {
 
    const auto block_number = atrace.block_num;
    if(block_number == 0) return;
@@ -271,9 +271,8 @@ void ledger_plugin_impl::process_add_ledger( ledger_table* t_ledger_table, const
    }
 }
 
-void ledger_plugin_impl::process_applied_transaction(const chain::transaction_trace_ptr& t) {
+void ledger_plugin_impl::process_applied_transaction(std::unique_ptr<ledger_table>& t_ledger_table, const chain::transaction_trace_ptr& t) {
    auto start_time = fc::time_point::now();
-   ledger_table* t_ledger_table = new ledger_table(m_connection_pool, ledger_raw_ag_count, ledger_acc_ag_count);
 
    for( const auto& atrace : t->action_traces ) {
       try {      
