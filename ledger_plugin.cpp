@@ -63,7 +63,7 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
       void process_applied_transaction(const chain::transaction_trace_ptr&);
       void _process_applied_transaction(const chain::transaction_trace_ptr&);
 
-      void process_add_ledger( ledger_table& t_ledger_table, const chain::action_trace& atrace );
+      void process_add_ledger( ledger_table* t_ledger_table, const chain::action_trace& atrace );
 
       void init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
          const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options);
@@ -252,7 +252,7 @@ void ledger_plugin_impl::consume_query_process() {
 
 }
 
-void ledger_plugin_impl::process_add_ledger( ledger_table& t_ledger_table, const chain::action_trace& atrace ) {
+void ledger_plugin_impl::process_add_ledger( ledger_table* t_ledger_table, const chain::action_trace& atrace ) {
 
    const auto block_number = atrace.block_num;
    if(block_number == 0) return;
