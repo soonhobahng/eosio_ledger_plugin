@@ -60,9 +60,9 @@ class ledger_plugin_impl : public std::enable_shared_from_this<ledger_plugin_imp
       void consume_applied_transactions();
 
       void applied_transaction(const chain::transaction_trace_ptr&);
-      void process_applied_transaction(std::unique_ptr<ledger_table> t_ledger_table, const chain::transaction_trace_ptr&);
+      void process_applied_transaction(std::unique_ptr<ledger_table>& t_ledger_table, const chain::transaction_trace_ptr&);
 
-      void process_add_ledger( std::unique_ptr<ledger_table> t_ledger_table, const chain::action_trace& atrace );
+      void process_add_ledger( std::unique_ptr<ledger_table>& t_ledger_table, const chain::action_trace& atrace );
 
       void init(const std::string host, const std::string user, const std::string passwd, const std::string database, 
          const uint16_t port, const uint16_t max_conn, bool do_close_on_unlock, uint32_t block_num_start, const variables_map& options);
